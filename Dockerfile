@@ -14,7 +14,6 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 
 # Install packages
 RUN apt-get -y update && \
-    apt-get -y upgrade && \
     apt-get -y install supervisor xvfb xfce4 x11vnc scrot vim xfce4-terminal language-pack-ja-base language-pack-ja ibus-anthy fonts-takao && \
     apt -y install python3 python3-pip && \
     pip3 install --upgrade pip && \
