@@ -1,0 +1,12 @@
+numpy==1.14.2
+packaging==17.1
+Pillow==5.1.0
+pip-review==1.0
+PyAutoGUI==0.9.36
+PyMsgBox==1.0.6
+pyparsing==2.2.0
+PyScreeze==0.1.14
+PyTweening==1.0.3
+six==1.11.0
+tornado==5.0.2
+xlib==0.21
