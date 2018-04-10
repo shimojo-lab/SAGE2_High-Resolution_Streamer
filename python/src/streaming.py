@@ -1,11 +1,13 @@
 # *-* encoding: utf-8 *-*
 ## streaming.py
-## (SAGE2サーバへストリーミング)
+## (ストリーミング処理を行うクラス)
 
 import sys
 import numpy as np
 from .screenshot import *
 from .websocket import *
+
+WS_CONSOLE = 'WebSocketIO>'
 
 class SAGE2Streamer:
     def __init__(self, conf):
@@ -34,7 +36,7 @@ class SAGE2Streamer:
         pixels = np.ravel(np.asarray(img))
         data_num = len(self.colorspace) * self.width * self.height
         if pixels.size != data_num:
-            print('Error: Image size is changed.')
+            print('{} Error: Image size is wrong. (Colorspace may be wrong)'.format(WS_CONSOLE))
             self.ws_request_next_frame(data)
         buf = np.fromstring(self.app_id+'|0\x00', dtype=np.uint8)
         data = np.concatenate((buf, pixels))
@@ -42,7 +44,7 @@ class SAGE2Streamer:
         return
     
     def ws_stop_screen_capture(self, data):
-        print('Stopping screen capture...')
+        print('{} Connection closed.'.format(WS_CONSOLE))
         self.wsio.close()
         return
     

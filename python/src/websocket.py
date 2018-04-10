@@ -1,6 +1,6 @@
 # *-* coding: utf-8 *-*
 ## websocket.py
-## (WebSocketでSAGE2サーバと通信)
+## (WebSocketでデータを送信するクラス)
 
 from tornado import websocket, ioloop
 from _thread import start_new_thread
@@ -37,7 +37,7 @@ class WebSocketIO:
         self.ioloop.stop()
 
     def on_open(self, socket):
-        print('{} Connected to {}.'.format(WS_CONSOLE, self.addr))
+        print('{} Connected to {}'.format(WS_CONSOLE, self.addr))
         self.socket = socket.result()
         start_new_thread(self.open_callback, ())
     

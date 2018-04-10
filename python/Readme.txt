@@ -1,6 +1,6 @@
 *** 使い方 ***
 1. 依存パッケージをインストール
-   pip3 install --requirements.txt
+   pip3 install --requirement requirements.txt
 
 2. 設定ファイルを編集
    vim config.json
