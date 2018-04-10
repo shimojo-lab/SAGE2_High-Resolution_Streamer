@@ -1,0 +1,9 @@
+{
+  "ip": "192.168.10.42",
+  "port": "9292",
+  "title": "SAGE2 Screen Sharing",
+  "color": "#ffffff",
+  "colorspace": "RGB",
+  "interval": 0.003
+}
+
