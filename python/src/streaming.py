@@ -2,6 +2,7 @@
 ## streaming.py
 ## (ストリーミング処理を行うクラス)
 
+from multiprocessing import Queue
 import sys
 import numpy as np
 from .screenshot import *
@@ -14,9 +15,18 @@ class SAGE2Streamer:
         self.title = conf['title']
         self.color = conf['color']
         self.colorspace = conf['colorspace']
-        self.capturer = ScreenCapturer()
+        self.queue = Queue(maxsize=conf['queue'])
+        self.wait_time = conf['dequeue_wait']
+        self.capturer = ScreenCapturer(self.queue, conf)
         self.wsio = WebSocketIO(conf)
-        return
+        self.capturer.start()
+    
+    def get_screenshot(self):
+        while self.queue.empty():
+            print('{} Warning: Could not get screenshots.'.format(WS_CONSOLE))
+            sleep(self.wait_time)
+        frame = self.queue.get()
+        return frame
     
     def ws_initialize(self, data):
         self.app_id = data['UID']
@@ -29,31 +39,26 @@ class SAGE2Streamer:
             'colorspace': self.colorspace
         }
         self.wsio.emit('startNewMediaBlockStream', request)
-        return
     
     def ws_request_next_frame(self, data):
-        img = self.capturer.capture()
-        pixels = np.ravel(np.asarray(img))
-        data_num = len(self.colorspace) * self.width * self.height
-        if pixels.size != data_num:
-            print('{} Error: Image size is wrong. (Colorspace may be wrong)'.format(WS_CONSOLE))
-            self.ws_request_next_frame(data)
+        frame = self.get_screenshot()
+        pixels = np.ravel(np.asarray(frame))
         buf = np.fromstring(self.app_id+'|0\x00', dtype=np.uint8)
         data = np.concatenate((buf, pixels))
         self.wsio.emit('updateMediaBlockStreamFrame', data)
-        return
     
     def ws_stop_screen_capture(self, data):
         print('{} Connection closed.'.format(WS_CONSOLE))
         self.wsio.close()
-        return
+        self.capturer.terminate()
+        self.capturer.join()
     
     def on_open(self):
         self.wsio.on('initialize', self.ws_initialize)
         self.wsio.on('requestNextFrame', self.ws_request_next_frame)
         self.wsio.on('stopMediaCapture', self.ws_stop_screen_capture)
         request = {
-            'clientType': 'test',
+            'clientType': self.title,
             'requests': {
                 'config': False,
                 'version': False,
@@ -62,11 +67,9 @@ class SAGE2Streamer:
             }
         }
         self.wsio.emit('addClient', request)
-        return
     
     def start(self):
-        img = self.capturer.capture()
-        self.width, self.height = img.size
+        frame = self.get_screenshot()
+        self.width, self.height = frame.size
         self.wsio.open(self.on_open)
-        return
 

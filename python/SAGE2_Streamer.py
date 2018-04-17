@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 ## SAGE2_streamer.py
-## (スクリーンショットをSAGE2サーバへ送信)
+## (Main)
 
 import json
 from src.streaming import *

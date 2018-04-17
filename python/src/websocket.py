@@ -3,7 +3,7 @@
 ## (WebSocketでデータを送信するクラス)
 
 from tornado import websocket, ioloop
-from _thread import start_new_thread
+from threading import Thread
 import json
 import numpy as np
 from asyncio import set_event_loop, new_event_loop
@@ -31,15 +31,17 @@ class WebSocketIO:
             self.ioloop.start()
         except KeyboardInterrupt:
             print('{} exit'.format(WS_CONSOLE))
-    
+            exit()
+     
     def close(self):
         self.socket.close()
         self.ioloop.stop()
-
+    
     def on_open(self, socket):
         print('{} Connected to {}'.format(WS_CONSOLE, self.addr))
         self.socket = socket.result()
-        start_new_thread(self.open_callback, ())
+        new_thread = Thread(target=self.open_callback)
+        new_thread.start()
     
     def on_message(self, json_msg):
         if json_msg == None:
