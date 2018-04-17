@@ -23,7 +23,7 @@ class SAGE2Streamer:
     
     def get_screenshot(self):
         while self.queue.empty():
-            print('{} Warning: Could not get screenshots.'.format(WS_CONSOLE))
+            #print('{} Warning: Could not get screenshots.'.format(WS_CONSOLE))
             sleep(self.wait_time)
         frame = self.queue.get()
         return frame
@@ -69,6 +69,8 @@ class SAGE2Streamer:
         self.wsio.emit('addClient', request)
     
     def start(self):
+        while self.queue.full() != False:
+            sleep(1)
         frame = self.get_screenshot()
         self.width, self.height = frame.size
         self.wsio.open(self.on_open)

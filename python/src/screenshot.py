@@ -15,7 +15,7 @@ class ScreenCapturer(Process):
     def __init__(self, queue, conf):
         super(ScreenCapturer, self).__init__()
         self.queue = queue
-        self.wait_time, self.interval = conf['queue_wait'], conf['interval']
+        self.wait_time = conf['queue_wait']
         self.display = conf['display']
         self.style = conf['style']
         os = system()
@@ -37,13 +37,15 @@ class ScreenCapturer(Process):
         return None
     
     def screenshot_for_linux(self):
-        tmp_img = './src/tmp/frame{}.{}'.format(randint(10), self.style)
-        subprocess.call(['scrot', tmp_img])
+        num = randint(10)
+        tmp_path = './src/tmp/frame{}.{}'.format(num, self.style)
+        cmd = ['env', 'DISPLAY={}'.format(self.display), 'scrot', tmp_path]
         try:
-            frame = Image.open(tmp_img)
-            os.unlink(tmp_img)
+            subprocess.check_call(cmd)
+            frame = Image.open(tmp_path)
         except:
             frame = self.screenshot_for_linux()
+        os.unlink(tmp_path)
         return frame
     
     def run(self):
@@ -53,5 +55,4 @@ class ScreenCapturer(Process):
                 sleep(self.wait_time)
             else:
                 self.queue.put(self.task())
-                sleep(self.interval)
 
