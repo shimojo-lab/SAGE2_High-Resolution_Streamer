@@ -3,14 +3,15 @@
 ## (WebSocketでデータを送信するクラス)
 
 from tornado import websocket, ioloop
-from threading import Thread
+from threading import Thread, Timer
 import json
 import numpy as np
 from asyncio import set_event_loop, new_event_loop
 from threading import Timer
+import multiprocessing
 
 WS_TAG, WS_ID = '#WSIO#addListener', '0000'
-WS_CONSOLE = 'WebSocketIO>'
+WS_CONSOLE = 'SAGE2_Streamer>'
 
 class WebSocketIO:
     def __init__(self, conf):
@@ -31,14 +32,13 @@ class WebSocketIO:
             self.ioloop.start()
         except KeyboardInterrupt:
             print('{} exit'.format(WS_CONSOLE))
-            exit()
-     
+
     def close(self):
         self.socket.close()
         self.ioloop.stop()
     
     def on_open(self, socket):
-        print('{} Connected to {}'.format(WS_CONSOLE, self.addr))
+        print('{} Connect to {}'.format(WS_CONSOLE, self.addr))
         self.socket = socket.result()
         new_thread = Thread(target=self.open_callback)
         new_thread.start()

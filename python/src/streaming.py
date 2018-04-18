@@ -3,12 +3,10 @@
 ## (ストリーミング処理を行うクラス)
 
 from multiprocessing import Queue
-import sys
-import numpy as np
 from .screenshot import *
 from .websocket import *
 
-WS_CONSOLE = 'WebSocketIO>'
+CONSOLE = 'SAGE2_Streamer>'
 
 class SAGE2Streamer:
     def __init__(self, conf):
@@ -16,18 +14,17 @@ class SAGE2Streamer:
         self.color = conf['color']
         self.colorspace = conf['colorspace']
         self.queue = Queue(maxsize=conf['queue'])
-        self.wait_time = conf['dequeue_wait']
+        self.wait_time = conf['queue_wait']
         self.capturer = ScreenCapturer(self.queue, conf)
         self.wsio = WebSocketIO(conf)
-        self.capturer.start()
     
-    def get_screenshot(self):
+    def fetch_frame(self):
         while self.queue.empty():
-            #print('{} Warning: Could not get screenshots.'.format(WS_CONSOLE))
+            print('{} Warning: Queue is empty (Screenshot is too slow)'.format(CONSOLE))
             sleep(self.wait_time)
         frame = self.queue.get()
         return frame
-    
+   
     def ws_initialize(self, data):
         self.app_id = data['UID']
         request = {
@@ -39,13 +36,15 @@ class SAGE2Streamer:
             'colorspace': self.colorspace
         }
         self.wsio.emit('startNewMediaBlockStream', request)
+        self.capturer.start(self.app_id)
+        print('{} Preparing for screenshot...'.format(CONSOLE))
+        while not self.queue.full():
+            sleep(1)
+        print('{} Start streaming'.format(CONSOLE))
     
     def ws_request_next_frame(self, data):
-        frame = self.get_screenshot()
-        pixels = np.ravel(np.asarray(frame))
-        buf = np.fromstring(self.app_id+'|0\x00', dtype=np.uint8)
-        data = np.concatenate((buf, pixels))
-        self.wsio.emit('updateMediaBlockStreamFrame', data)
+        frame = self.fetch_frame()
+        self.wsio.emit('updateMediaBlockStreamFrame', frame)
     
     def ws_stop_screen_capture(self, data):
         print('{} Connection closed.'.format(WS_CONSOLE))
@@ -69,9 +68,8 @@ class SAGE2Streamer:
         self.wsio.emit('addClient', request)
     
     def start(self):
-        while self.queue.full() != False:
-            sleep(1)
-        frame = self.get_screenshot()
+        print('{} Preparing for WebSocket...'.format(CONSOLE))
+        frame = self.capturer.take_screenshot()
         self.width, self.height = frame.size
         self.wsio.open(self.on_open)
 
