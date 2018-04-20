@@ -8,10 +8,9 @@ import json
 import numpy as np
 from asyncio import set_event_loop, new_event_loop
 from threading import Timer
-import multiprocessing
 
 WS_TAG, WS_ID = '#WSIO#addListener', '0000'
-WS_CONSOLE = 'SAGE2_Streamer>'
+CONSOLE = 'SAGE2_Streamer>'
 
 class WebSocketIO:
     def __init__(self, conf):
@@ -31,41 +30,41 @@ class WebSocketIO:
             self.ioloop = ioloop.IOLoop.instance()
             self.ioloop.start()
         except KeyboardInterrupt:
-            print('{} exit'.format(WS_CONSOLE))
+            print('{} exit'.format(CONSOLE))
 
     def close(self):
         self.socket.close()
         self.ioloop.stop()
     
     def on_open(self, socket):
-        print('{} Connect to {}'.format(WS_CONSOLE, self.addr))
+        print('{} Connect to {}'.format(CONSOLE, self.addr))
         self.socket = socket.result()
         new_thread = Thread(target=self.open_callback)
         new_thread.start()
     
-    def on_message(self, json_msg):
-        if json_msg == None:
+    def on_message(self, msg):
+        if msg == None:
             self.on_close()
         else:
-            if json_msg.startswith('{') and json_msg.endswith('}'):
-                msg = json.loads(json_msg)
-                if msg['f'] in self.local_listeners:
-                    f_name = self.local_listeners[msg['f']]
+            if msg.startswith('{') and msg.endswith('}'):
+                json_msg = json.loads(msg)
+                if json_msg['f'] in self.local_listeners:
+                    f_name = self.local_listeners[json_msg['f']]
                     if f_name == WS_TAG:
-                        self.remote_listeners[msg['d']['listener']] = msg['d']['alias']
+                        self.remote_listeners[json_msg['d']['listener']] = json_msg['d']['alias']
                     else:
-                        self.msgs[f_name](msg['d'])
+                        self.msgs[f_name](json_msg['d'])
                 else:
-                    print('{} No handler for message.'.format(WS_CONSOLE))
+                    print('{} No handler for message.'.format(CONSOLE))
             else:
-                data = np.fromstring(json_msg, dtype=np.uint8, count=len(json_msg))
+                data = np.fromstring(msg, dtype=np.uint8, count=len(msg))
                 func = data[:4].tostring()
                 f_name = self.local_listerners[func]
                 buf = data[4:]
                 self.msgs[f_name](buf)
     
     def on_close(self):
-        print('{} Socket closed.'.format(WS_CONSOLE))
+        print('{} Socket closed.'.format(CONSOLE))
         self.ioloop.stop()
     
     def on(self, name, callback):
@@ -77,22 +76,17 @@ class WebSocketIO:
     
     def emit(self, name, data, attempts=10):
         if name==None or name=='':
-            print('{} Error: No message name specified.'.format(WS_CONSOLE))
+            print('{} Error: No message name specified.'.format(CONSOLE))
         
         if name in self.remote_listeners:
             set_event_loop(new_event_loop())
             alias = self.remote_listeners[name]
-            if isinstance(data, np.ndarray):
-                func_name = np.fromstring(alias, dtype=np.uint8, count=4)
-                msg = np.concatenate([func_name, data])
-                self.socket.write_message(msg.tostring(), binary=True)
-            else:
-                msg = {'f': alias, 'd': data}
-                self.socket.write_message(json.dumps(msg))
+            msg = {'f': alias, 'd': data}
+            self.socket.write_message(json.dumps(msg))
         else:
             if attempts >= 0:
                 timer = Timer(self.interval, self.emit, [name, data, attempts-1])
                 timer.start()
             else:
-                print('{} Warning: Not sending message, recipient has no listener. ({})'.format(WS_CONSOLE, name))
+                print('{} Warning: Not sending message, recipient has no listener. ({})'.format(CONSOLE, name))
 

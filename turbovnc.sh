@@ -1,4 +1,4 @@
 #!/bin/bash
 
-/opt/TurboVNC/bin/vncserver -geometry 1280x960 -depth 24
+/opt/TurboVNC/bin/vncserver -geometry 1000x700 -depth 24
 

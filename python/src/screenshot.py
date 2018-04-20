@@ -2,27 +2,27 @@
 ## screenshot.py
 ## (画面キャプチャを行うクラス)
 
-from multiprocessing import Process
-import subprocess
-import numpy as np
-import os
-import sys
+from multiprocessing import Process, Queue
+from subprocess import check_call
 from PIL import Image
+import numpy as np
+from os import unlink
+from io import BytesIO
+from base64 import b64encode
 from time import sleep
 
 class ScreenCapturer(Process):
     def __init__(self, queue, conf):
         super(ScreenCapturer, self).__init__()
-        self.queue, self.task = queue, self.take_screenshot
-        self.display = conf['display']
-        self.style = conf['style']
+        self.queue = queue
+        self.display, self.style = conf['display'], conf['style']
     
     def take_screenshot(self):
         num = np.random.randint(10)
         tmp_path = './src/tmp/frame{}.{}'.format(num, self.style)
         cmd = ['env', 'DISPLAY={}'.format(self.display), 'scrot', tmp_path]
         try:
-            subprocess.check_call(cmd)
+            check_call(cmd)
             frame = Image.open(tmp_path)
         except:
             frame = self.take_screenshot()
@@ -31,21 +31,40 @@ class ScreenCapturer(Process):
         except:
             return frame
         return frame
-    
+   
     def convert_to_base64(self, frame):
-        binary = np.ravel(np.asarray(frame))
-        buf = np.fromstring(self.app_id+'|0\x00', dtype=np.uint8)
-        data = np.concatenate((buf, binary))
-        return data
+        buf = BytesIO()
+        frame.save(buf, format='JPEG')
+        frame_str = b64encode(buf.getvalue())
+        return frame_str
     
     def run(self):
         while True:
             frame = self.take_screenshot()
-            data = self.convert_to_base64(frame)
+            frame_str = self.convert_to_base64(frame)
             if not self.queue.full():
-                self.queue.put(data)
+                self.queue.put(frame_str)
+'''
+class Base64Converter(Process):
+    def __init__(self, queue):
+        super(ScreenCapturer, self).__init__()
+        self.queue = Queue(max_size=8)
     
-    def start(self, app_id):
-        self.app_id = app_id
-        super(ScreenCapturer, self).start()
+    def fetch_frame(self):
+         frame = self.queue.get()
+         return frame
+    
+    def convert(self, frame):
+         buf = BytesIO()
+         frame.save(buf, format='JPEG')
+         frame_str = b64encode(buf.getvalue())
+         return frame_str
+    
+    def run(self):
+        while True:
+            if not self.queue.full():
+                frame = self.fetch_frame()
+                frame_str = self.convert(frame)
+                self.queue.put(frame_str)
+'''
 

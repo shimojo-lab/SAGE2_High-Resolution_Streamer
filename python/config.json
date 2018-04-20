@@ -5,9 +5,9 @@
   "port": "9292",
   "title": "SAGE2 Streamer",
   "color": "#cccc00",
-  "colorspace": "RGB",
   "interval": 0.001,
-  "queue_wait": 3,
-  "queue": 8
+  "queue": 10,
+  "queue_wait": 1,
+  "chunk_size": 30000
 }
 
