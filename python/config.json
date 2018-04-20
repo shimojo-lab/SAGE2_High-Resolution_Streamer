@@ -1,13 +1,13 @@
 {
   "display": ":1",
-  "style": "jpg",
+  "filetype": "png",
   "ip": "192.168.10.42",
   "port": "9292",
   "title": "SAGE2 Streamer",
   "color": "#cccc00",
   "interval": 0.001,
-  "queue": 10,
-  "queue_wait": 1,
+  "img_queue": 20,
+  "str_queue": 20,
   "chunk_size": 30000
 }
 
