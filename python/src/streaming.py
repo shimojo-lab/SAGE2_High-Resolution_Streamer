@@ -20,7 +20,7 @@ class SAGE2Streamer:
         self.width, self.height = ScreenCapturer(None, conf).take_screenshot().size
     
     def __del__(self):
-        print('{} Connection closed'.format(WS_CONSOLE))
+        print('{} Connection closed'.format(CONSOLE))
         self.wsio.close()
         self.encoder.terminate()
         self.encoder.join()
@@ -28,10 +28,10 @@ class SAGE2Streamer:
     def fetch_str_frame(self):
         count = 0
         while self.str_queue.empty():
-            sleep(0.001)
+            sleep(0.0001)
             count += 1
             if count == 1000:
-                print('{} Warning: Base64 encoding is too slow'.format(CONSOLE))
+                print('{} Warning: Base64 encoding is delayed'.format(CONSOLE))
             count = 0
         return self.str_queue.get()
        

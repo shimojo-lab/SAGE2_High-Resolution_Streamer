@@ -4,24 +4,21 @@
 
 from threading import Thread
 from queue import Queue
-from subprocess import check_call
+import subprocess
+from io import BytesIO
 from PIL import Image
-from numpy import random
-from os import path, unlink
 
 class ScreenCapturer(Thread):
     def __init__(self, img_queue, conf):
         super(ScreenCapturer, self).__init__()
         self.img_queue = img_queue
-        self.display, self.filetype = conf['display'], conf['filetype']
+        self.display = conf['display']
     
     def take_screenshot(self):
-        tmp_path = path.dirname(path.abspath(__file__)) + '/.tmp/frame{}.{}'.format(random.randint(15), self.filetype)
-        cmd = ['env', 'DISPLAY={}'.format(self.display), 'scrot', tmp_path]
+        cmd = ['env', 'DISPLAY={}'.format(self.display), 'import', '-w', 'root', 'bmp:-']
         try:
-            check_call(cmd)
-            img_frame = Image.open(tmp_path)
-            unlink(tmp_path)
+            binary = subprocess.Popen(cmd, stdout=subprocess.PIPE).communicate()[0]
+            img_frame = Image.open(BytesIO(binary))
         except:
             img_frame = self.take_screenshot()
         return img_frame
