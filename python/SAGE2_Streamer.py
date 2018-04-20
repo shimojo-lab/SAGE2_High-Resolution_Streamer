@@ -3,10 +3,12 @@
 ## (Main)
 
 import json
+from os import path
 from src.streaming import *
 
 if __name__ == '__main__':
-    conf = json.load(open('./config.json', 'r'))
+    conf_path = path.dirname(path.abspath(__file__)) + '/config.json'
+    conf = json.load(open(conf_path, 'r'))
     streamer = SAGE2Streamer(conf)
     streamer.start()
 

@@ -19,9 +19,20 @@ class SAGE2Streamer:
         self.encoder, self.wsio = Base64Encoder(self.str_queue, conf), WebSocketIO(conf)
         self.width, self.height = ScreenCapturer(None, conf).take_screenshot().size
     
+    def __del__(self):
+        print('{} Connection closed'.format(WS_CONSOLE))
+        self.wsio.close()
+        self.encoder.terminate()
+        self.encoder.join()
+    
     def fetch_str_frame(self):
+        count = 0
         while self.str_queue.empty():
-            print('{} Warning: Base64 encoding is too slow'.format(CONSOLE))
+            sleep(0.001)
+            count += 1
+            if count == 1000:
+                print('{} Warning: Base64 encoding is too slow'.format(CONSOLE))
+            count = 0
         return self.str_queue.get()
        
     def ws_initialize(self, data):
@@ -81,16 +92,9 @@ class SAGE2Streamer:
         }
         self.wsio.emit('updateMediaStreamChunk', request)
  
-    def ws_stop_streaming(self, data):
-        print('{} Connection closed'.format(WS_CONSOLE))
-        self.wsio.close()
-        self.encoder.terminate()
-        self.encoder.join()
-    
     def on_open(self):
         self.wsio.on('initialize', self.ws_initialize)
         self.wsio.on('requestNextFrame', self.ws_request_next_frame)
-        self.wsio.on('stopMediaStream', self.ws_stop_streaming)
         request = {
             'clientType': self.title,
             'requests': {

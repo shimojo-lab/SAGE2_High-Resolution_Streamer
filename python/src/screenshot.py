@@ -7,7 +7,7 @@ from queue import Queue
 from subprocess import check_call
 from PIL import Image
 from numpy import random
-from os import unlink
+from os import path, unlink
 
 class ScreenCapturer(Thread):
     def __init__(self, img_queue, conf):
@@ -16,7 +16,7 @@ class ScreenCapturer(Thread):
         self.display, self.filetype = conf['display'], conf['filetype']
     
     def take_screenshot(self):
-        tmp_path = './src/.tmp/frame{}.{}'.format(random.randint(10), self.filetype)
+        tmp_path = path.dirname(path.abspath(__file__)) + '/.tmp/frame{}.{}'.format(random.randint(15), self.filetype)
         cmd = ['env', 'DISPLAY={}'.format(self.display), 'scrot', tmp_path]
         try:
             check_call(cmd)

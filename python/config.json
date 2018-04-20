@@ -6,8 +6,8 @@
   "title": "SAGE2 Streamer",
   "color": "#cccc00",
   "interval": 0.001,
-  "img_queue": 20,
-  "str_queue": 20,
-  "chunk_size": 30000
+  "img_queue": 10,
+  "str_queue": 10,
+  "chunk_size": 5000
 }
 

@@ -18,19 +18,29 @@ class Base64Encoder(Process):
         self.img_queue = Queue(maxsize=conf['img_queue'])
         self.capturer = ScreenCapturer(self.img_queue, conf)
     
+    def __del__(self):
+        self.capturer.terminate()
+        self.capturer.join()
+        super(Base64Encoder, self).__del__()
+    
     def fetch_img_frame(self):
-         while self.img_queue.empty():
-             print('{} Warning: Screenshot is too slow'.format(CONSOLE))
-         return self.img_queue.get()
+        count = 0
+        while self.img_queue.empty():
+             count += 1
+             sleep(0.001)
+             if count == 1000:
+                 print('{} Warning: Screenshot is too slow'.format(CONSOLE))
+                 count = 0
+        return self.img_queue.get()
     
     def encode(self, frame):
-         buf = BytesIO()
-         try:
-             frame.save(buf, format='JPEG')
-             str_frame = b64encode(buf.getvalue())
-         except:
-             str_frame = self.encode(frame)
-         return str_frame
+        buf = BytesIO()
+        try:
+            frame.save(buf, format='JPEG')
+            str_frame = b64encode(buf.getvalue())
+        except:
+            str_frame = self.encode(frame)
+        return str_frame
     
     def run(self):
         self.capturer.start()
