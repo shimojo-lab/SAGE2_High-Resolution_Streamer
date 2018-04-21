@@ -15,10 +15,12 @@ CONSOLE = 'SAGE2_Streamer>'
 class SAGE2Streamer:
     def __init__(self, conf):
         self.str_queue = mp_queue(maxsize=conf['str_queue'])
+        self.counter = FrameCounter()
         self.title, self.color = conf['title'], conf['color']
         self.app_id, self.chunk_size = None, conf['chunk_size']
         self.filetype, self.width, self.height = conf['filetype'], conf['width'], conf['height']
-        self.encoder, self.wsio = Base64Encoder(self.str_queue, conf), WebSocketIO(conf)
+        self.encoder = Base64Encoder(self.str_queue, conf)
+        self.wsio = WebSocketIO(conf)
     
     def __del__(self):
         print('{} Connection closed'.format(CONSOLE))
@@ -27,18 +29,12 @@ class SAGE2Streamer:
         self.encoder.join()
     
     def fetch_str_frame(self):
-        count = 0
-        while self.str_queue.empty():
-            sleep(0.001)
-            count += 1
-            if count == 1000:
-                print('{} Warning: Base64 encoding is delayed'.format(CONSOLE))
-            count = 0
-        return self.str_queue.get()
+        str_frame = self.str_queue.get()
+        return str_frame
     
     def ws_initialize(self, data):
-        self.app_id = data['UID'] + '|0'
         self.encoder.start()
+        self.app_id = data['UID'] + '|0'
         str_frame = self.fetch_str_frame()
         request = {
             'id': self.app_id,

@@ -8,9 +8,9 @@ import subprocess
 from time import sleep
 
 class ScreenCapturer(Thread):
-    def __init__(self, bin_queue, conf):
+    def __init__(self, bin_queue, counter, conf):
         super(ScreenCapturer, self).__init__()
-        self.bin_queue = bin_queue
+        self.bin_queue, self.counter = bin_queue, counter
         self.display, self.window = conf['display'], conf['window']
         self.depth, self.quality = conf['depth'], conf['quality']
         self.filetype = conf['filetype']
@@ -28,13 +28,11 @@ class ScreenCapturer(Thread):
             bin_frame = subprocess.Popen(cmd, stdout=subprocess.PIPE).communicate()[0]
         except:
             bin_frame = self.take_screenshot()
-        return bin_frame
+        frame_num = self.counter.get_frame_num
+        return (frame_num, bin_frame)
     
     def run(self):
         while True:
             bin_frame = self.take_screenshot()
-            if self.bin_queue.full():
-                sleep(0.001)
-            else:
-                self.bin_queue.put(bin_frame)
+            self.bin_queue.put(bin_frame)
 
