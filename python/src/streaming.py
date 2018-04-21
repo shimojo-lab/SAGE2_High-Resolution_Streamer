@@ -3,8 +3,9 @@
 ## (ストリーミング処理を行うクラス)
 
 from multiprocessing import Queue as mp_queue
+from io import BytesIO
+from PIL import Image
 from math import ceil
-from .screenshot import *
 from .base64 import *
 from .websocket import *
 from time import sleep
@@ -16,8 +17,8 @@ class SAGE2Streamer:
         self.str_queue = mp_queue(maxsize=conf['str_queue'])
         self.title, self.color = conf['title'], conf['color']
         self.app_id, self.chunk_size = None, conf['chunk_size']
+        self.filetype, self.width, self.height = conf['filetype'], conf['width'], conf['height']
         self.encoder, self.wsio = Base64Encoder(self.str_queue, conf), WebSocketIO(conf)
-        self.width, self.height = ScreenCapturer(None, conf).take_screenshot().size
     
     def __del__(self):
         print('{} Connection closed'.format(CONSOLE))
@@ -28,13 +29,13 @@ class SAGE2Streamer:
     def fetch_str_frame(self):
         count = 0
         while self.str_queue.empty():
-            sleep(0.0001)
+            sleep(0.001)
             count += 1
             if count == 1000:
                 print('{} Warning: Base64 encoding is delayed'.format(CONSOLE))
             count = 0
         return self.str_queue.get()
-       
+    
     def ws_initialize(self, data):
         self.app_id = data['UID'] + '|0'
         self.encoder.start()
@@ -45,8 +46,8 @@ class SAGE2Streamer:
             'color': self.color,
             'width': self.width,
             'height': self.height,
-            'src': str_frame.decode('utf-8'),
-            'type': 'image/jpeg',
+            'src': str_frame,
+            'type': 'image/{}'.format(self.filetype),
             'encoding': 'base64'
         }
         self.wsio.emit('requestToStartMediaStream', {})
@@ -71,8 +72,8 @@ class SAGE2Streamer:
             request = {
                 'id': self.app_id,
                 'state': {
-                    'src': str_frame.decode('utf-8'),
-                    'type': 'image/jpeg',
+                    'src': str_frame,
+                    'type': 'image/{}'.format(self.filetype),
                     'encoding': 'base64',
                     'pointersOverApp': []
                 },
@@ -83,8 +84,8 @@ class SAGE2Streamer:
         request = {
             'id': self.app_id,
             'state': {
-                'src': chunk.decode('utf-8'),
-                'type': 'image/jpeg',
+                'src': chunk,
+                'type': 'image/{}'.format(self.filetype),
                 'encoding': 'base64'
             },
             'piece': index,

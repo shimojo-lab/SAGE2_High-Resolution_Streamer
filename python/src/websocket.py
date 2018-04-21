@@ -21,7 +21,7 @@ class WebSocketIO:
         self.alias_count = 1
         self.remote_listeners = {WS_TAG: WS_ID}
         self.local_listeners = {WS_ID: WS_TAG}
-        self.interval = conf['interval']
+        self.interval = 0.001
     
     def open(self, callback):
         websocket.websocket_connect(self.addr, callback=self.on_open, on_message_callback=self.on_message)

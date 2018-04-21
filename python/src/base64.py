@@ -4,45 +4,44 @@
 
 from multiprocessing import Process
 from queue import Queue
-from io import BytesIO
 from base64 import b64encode
-from .screenshot import *
 from time import sleep
+from .screenshot import *
 
 CONSOLE = 'SAGE2_Streamer>'
 
 class Base64Encoder(Process):
     def __init__(self, str_queue, conf):
         super(Base64Encoder, self).__init__()
-        self.filetype = conf['filetype']
         self.str_queue = str_queue
-        self.img_queue = Queue(maxsize=conf['img_queue'])
-        self.capturer = ScreenCapturer(self.img_queue, conf)
+        self.bin_queue = Queue(maxsize=conf['bin_queue'])
+        self.capturer = ScreenCapturer(self.bin_queue, conf)
     
-    def fetch_img_frame(self):
+    def fetch_bin_frame(self):
         count = 0
-        while self.img_queue.empty():
+        while self.bin_queue.empty():
              count += 1
-             sleep(0.0001)
-             if count == 1000:
+             sleep(0.001)
+             if count == 10000:
                  print('{} Warning: Screenshot is delayed'.format(CONSOLE))
                  count = 0
-        return self.img_queue.get()
+        return self.bin_queue.get()
+    
+    def get_frame_size(self):
+        frame = self.fetch_bin_frame()
+        return frame.size
     
     def encode(self, frame):
-        buf = BytesIO()
-        try:
-            frame.save(buf, format=self.filetype)
-            str_frame = b64encode(buf.getvalue())
-        except:
-            str_frame = self.encode(frame)
+        str_frame = b64encode(frame).decode('utf-8')
         return str_frame
     
     def run(self):
         self.capturer.start()
         while True:
-            frame = self.fetch_img_frame()
+            frame = self.fetch_bin_frame()
             str_frame = self.encode(frame)
-            if not self.str_queue.full():
+            if self.str_queue.full():
+                sleep(0.001)
+            else:
                 self.str_queue.put(str_frame)
 
