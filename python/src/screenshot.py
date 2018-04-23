@@ -3,36 +3,44 @@
 ## (画面キャプチャを行うクラス)
 
 from threading import Thread
-from queue import Queue
-import subprocess
-from time import sleep
+from subprocess import Popen, PIPE
+from io import BytesIO
+from PIL import Image
+from base64 import b64encode
 
 class ScreenCapturer(Thread):
-    def __init__(self, bin_queue, counter, conf):
+    def __init__(self, queue, counter, conf):
         super(ScreenCapturer, self).__init__()
-        self.bin_queue, self.counter = bin_queue, counter
-        self.display, self.window = conf['display'], conf['window']
-        self.depth, self.quality = conf['depth'], conf['quality']
-        self.filetype = conf['filetype']
+        self.queue, self.counter = queue, counter
+        self.cmd = [
+            'import',
+            '-display', ':{}'.format(conf['display']),
+            '-w', str(conf['window']),
+            '-depth', str(conf['depth']),
+            '-quality', str(conf['quality']),
+            '{}:-'.format(conf['filetype']) 
+        ]
+    
+    def get_frame_size(self):
+        try:
+            frame = Popen(self.cmd, stdout=PIPE).communicate()[0]
+            buf = BytesIO(frame)
+            width, height = Image.open(buf).size
+        except:
+            width, height = self.get_frame_size()
+        return width, height
     
     def take_screenshot(self):
-        cmd = [
-            'import',
-            '-display', ':{}'.format(self.display),
-            '-w', str(self.window),
-            '-depth', str(self.depth),
-            '-quality', str(self.quality),
-            '{}:-'.format(self.filetype)
-        ]
         try:
-            bin_frame = subprocess.Popen(cmd, stdout=subprocess.PIPE).communicate()[0]
+            frame = Popen(self.cmd, stdout=PIPE).communicate()[0]
         except:
-            bin_frame = self.take_screenshot()
+            frame = self.take_screenshot()
+        frame = b64encode(frame).decode('utf-8')
         frame_num = self.counter.get_frame_num
-        return (frame_num, bin_frame)
+        return (frame_num, frame)
     
     def run(self):
         while True:
-            bin_frame = self.take_screenshot()
-            self.bin_queue.put(bin_frame)
+            frame = self.take_screenshot()
+            self.queue.put(frame)
 

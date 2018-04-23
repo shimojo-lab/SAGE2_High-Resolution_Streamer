@@ -3,7 +3,6 @@
 ## (WebSocketでデータを送信するクラス)
 
 from tornado import websocket, ioloop
-from threading import Thread, Timer
 import json
 import numpy as np
 from threading import Timer
@@ -29,7 +28,7 @@ class WebSocketIO():
             self.ioloop.start()
         except KeyboardInterrupt:
             print('{} exit'.format(CONSOLE))
-
+    
     def close(self):
         self.socket.close()
         self.ioloop.stop()
@@ -54,10 +53,10 @@ class WebSocketIO():
                 else:
                     print('{} No handler for message'.format(CONSOLE))
             else:
-                print('{} Message is invalid (not JSON)'.format(CONSOLE))
+                print('{} Message format is invalid (not JSON)'.format(CONSOLE))
     
     def on_close(self):
-        print('{} Socket closed.'.format(CONSOLE))
+        print('{} Socket closed'.format(CONSOLE))
         self.ioloop.stop()
     
     def on(self, name, callback):
@@ -69,7 +68,7 @@ class WebSocketIO():
     
     def emit(self, name, data, attempts=10):
         if name==None or name=='':
-            print('{} Error: No message name specified.'.format(CONSOLE))
+            print('{} Error: No message name specified'.format(CONSOLE))
         
         if name in self.remote_listeners:
             alias = self.remote_listeners[name]
@@ -80,5 +79,5 @@ class WebSocketIO():
                 timer = Timer(self.interval, self.emit, [name, data, attempts-1])
                 timer.start()
             else:
-                print('{} Warning: Not sending message, recipient has no listener. ({})'.format(CONSOLE, name))
+                print('{} Warning: Not sending message, recipient has no listener ({})'.format(CONSOLE, name))
 
