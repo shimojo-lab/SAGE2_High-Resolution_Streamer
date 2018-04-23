@@ -70,8 +70,7 @@ class SAGE2Streamer:
                 'state': {
                     'src': str_frame,
                     'type': 'image/{}'.format(self.filetype),
-                    'encoding': 'base64',
-                    'pointersOverApp': []
+                    'encoding': 'base64'
                 },
             }
             self.wsio.emit('updateMediaStreamFrame', request)
@@ -88,7 +87,7 @@ class SAGE2Streamer:
             'total': chunk_num
         }
         self.wsio.emit('updateMediaStreamChunk', request)
- 
+    
     def on_open(self):
         self.wsio.on('initialize', self.ws_initialize)
         self.wsio.on('requestNextFrame', self.ws_request_next_frame)

@@ -20,7 +20,7 @@ class FrameCounter(object):
         with self.lock:
             frame_num = self.count
             self.count += 1
-            return frame_num
+        return frame_num
 
 class Base64Encoder(Process):
     def __init__(self, str_queue, conf):
