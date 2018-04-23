@@ -8,7 +8,7 @@
   "quality": 100,
   "capturer": 4,
   "queue": 4,
-  "chunk": "True",
+  "chunk": "False",
   "chunk_size": 10000,
   "title": "SAGE2 Streamer",
   "color": "#cccc00"

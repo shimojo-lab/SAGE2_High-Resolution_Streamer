@@ -12,15 +12,11 @@ class ScreenCapturer(Thread):
     def __init__(self, queue, counter, conf):
         super(ScreenCapturer, self).__init__()
         self.queue, self.counter = queue, counter
-        self.cmd = [
-            'xwd',
-            '-display', ':{}'.format(conf['display']),
-            '-root', '|',
-            'convert', '-',
-            '-depth', str(conf['depth']),
-            '-quality', str(conf['quality']),
-            '{}:-'.format(conf['filetype']) 
-        ]
+        self.cmd = 'xwd -display :{} '.format(conf['display'])
+        self.cmd += '-root | convert - '
+        self.cmd += '-depth {} '.format(conf['depth'])
+        self.cmd += '-quality {} '.format(conf['quality'])
+        self.cmd += '{}:-'.format(conf['filetype']) 
     
     def get_frame_size(self):
         try:
