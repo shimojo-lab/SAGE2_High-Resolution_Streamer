@@ -5,11 +5,11 @@
   "window": "root",
   "filetype": "jpeg",
   "depth": 24,
-  "quality": 75,
+  "quality": 100,
   "capturer": 4,
   "queue": 4,
-  "chunk": "False",
-  "chunk_size": -1,
+  "chunk": "True",
+  "chunk_size": 10000,
   "title": "SAGE2 Streamer",
   "color": "#cccc00"
 }

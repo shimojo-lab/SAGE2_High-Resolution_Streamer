@@ -13,9 +13,10 @@ class ScreenCapturer(Thread):
         super(ScreenCapturer, self).__init__()
         self.queue, self.counter = queue, counter
         self.cmd = [
-            'import',
+            'xwd',
             '-display', ':{}'.format(conf['display']),
-            '-w', str(conf['window']),
+            '-root', '|',
+            'convert', '-',
             '-depth', str(conf['depth']),
             '-quality', str(conf['quality']),
             '{}:-'.format(conf['filetype']) 
@@ -23,7 +24,7 @@ class ScreenCapturer(Thread):
     
     def get_frame_size(self):
         try:
-            frame = Popen(self.cmd, stdout=PIPE).communicate()[0]
+            frame = Popen(self.cmd, shell=True, stdin=PIPE, stdout=PIPE).communicate()[0]
             buf = BytesIO(frame)
             width, height = Image.open(buf).size
         except:
@@ -32,7 +33,7 @@ class ScreenCapturer(Thread):
     
     def take_screenshot(self):
         try:
-            frame = Popen(self.cmd, stdout=PIPE).communicate()[0]
+            frame = Popen(self.cmd, shell=True, stdin=PIPE, stdout=PIPE).communicate()[0]
         except:
             frame = self.take_screenshot()
         frame = b64encode(frame).decode('utf-8')
