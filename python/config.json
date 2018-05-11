@@ -2,15 +2,15 @@
   "ip": "192.168.10.42",
   "port": "9292",
   "display": 1,
-  "window": "root",
   "filetype": "jpeg",
+  "width": 5464,
+  "height": 3072,
   "depth": 24,
   "quality": 100,
-  "capturer": 4,
-  "queue": 4,
-  "chunk": "False",
-  "chunk_size": 10000,
-  "title": "SAGE2 Streamer",
+  "queue": 8,
+  "chunk": "True",
+  "chunk_size": 1000000,
+  "title": "SAGE2_Streamer",
   "color": "#cccc00"
 }
 

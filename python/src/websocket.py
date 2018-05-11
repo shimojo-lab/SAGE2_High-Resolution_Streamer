@@ -4,7 +4,6 @@
 
 from tornado import websocket, ioloop
 import json
-import numpy as np
 from threading import Timer
 
 WS_TAG, WS_ID = '#WSIO#addListener', '0000'
