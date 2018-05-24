@@ -6,9 +6,6 @@ import json
 from threading import Timer
 from .utils import *
 
-WS_TAG = '#WSIO#addListener'
-WS_ID = '0000'
-
 # WebSocketの読み書きを行うクラス
 class WebSocketIO():
     # コンストラクタ
@@ -16,12 +13,13 @@ class WebSocketIO():
         # パラメータを設定
         self.socket = None         # 通信用のソケット
         self.open_callback = None  # ソケットを開いた時のコールバック
-        self.addr = 'ws://%s:%s' % (conf['ip'], conf['port'])  # SAGE2サーバのアドレス
         self.msgs = {}             # 
         self.alias_count = 1       # 
-        self.remote_listeners = {WS_TAG: WS_ID}  # 
-        self.local_listeners = {WS_ID: WS_TAG}   # 
-        self.interval = 0.001      # 送信失敗時の待ち時間
+        self.ws_tag = conf['ws_tag']                             # 
+        self.interval = conf['interval']                         # 送信失敗時の待ち時間
+        self.addr = 'ws://%s:%d' % (conf['ip'], conf['port'])    # SAGE2サーバのアドレス
+        self.remote_listeners = {conf['ws_tag']: conf['ws_id']}  # 
+        self.local_listeners = {conf['ws_id']: conf['ws_tag']}   # 
     
     # ソケットを開くメソッド
     def open(self, callback):
@@ -58,7 +56,7 @@ class WebSocketIO():
                 json_msg = json.loads(msg)
                 if json_msg['f'] in self.local_listeners:
                     f_name = self.local_listeners[json_msg['f']]
-                    if f_name == WS_TAG:
+                    if f_name == self.ws_tag:
                         self.remote_listeners[json_msg['d']['listener']] = json_msg['d']['alias']
                     else:
                         self.msgs[f_name](json_msg['d'])
@@ -73,7 +71,7 @@ class WebSocketIO():
         self.local_listeners[alias] = name
         self.msgs[name] = callback
         self.alias_count += 1
-        self.emit(WS_TAG, {'listener': name, 'alias': alias})
+        self.emit(self.ws_tag, {'listener': name, 'alias': alias})
     
     # データを送信するメソッド
     def emit(self, name, data, attempts=10):

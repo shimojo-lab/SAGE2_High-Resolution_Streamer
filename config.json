@@ -1,20 +1,16 @@
 {
-  "server": {
-    "ip": "tiled1",
-    "port": "9292"
-  },
-  "client": {
-    "display": 1,
-    "width": 2732,
-    "height": 1536,
-    "depth": 24,
-    "compression": "png",
-    "quality": 100,
-    "queue_size": 8,
-    "min_capturer_num": 8,
-    "max_capturer_num": 32,
-    "title": "SAGE2_Streamer",
-    "color": "#cccc00"
-  }
+  "server_ip": "tiled1",
+  "server_port": 9292,
+  "display": 1,
+  "width": 2732,
+  "height": 1536,
+  "depth": 24,
+  "compression": "png",
+  "quality": 100,
+  "queue_size": 8,
+  "min_capturer_num": 8,
+  "max_capturer_num": 32,
+  "vnc_reset": "True",
+  "vnc_path": "/opt/TurboVNC/bin/vncserver"
 }
 

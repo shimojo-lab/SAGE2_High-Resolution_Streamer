@@ -4,7 +4,8 @@
 from threading import Lock, active_count
 from queue import PriorityQueue
 from time import sleep
-from .capturer import *
+from .utils import *
+from .capturer_thread import *
 
 ## フレーム番号を管理するクラス
 class FrameCounter(object):
@@ -25,41 +26,50 @@ class CapturerManager:
     # コンストラクタ
     def __init__(self, conf):
         # パラメータを設定
-        self.conf = conf
         self.min_capturer_num = conf['min_capturer_num']
         self.max_capturer_num = conf['max_capturer_num']
-        self.counter = FrameCounter()
+        
+        # キューとフレーム番号管理部を初期化
         self.queue = PriorityQueue(maxsize=conf['queue_size'])
-        self.pre_queue_size = 0
+        self.pre_queue_size = 0 
+        self.counter = FrameCounter()
         
         # スレッドリストを初期化
-        self.capturer_list = []
+        self.thread_conf = {
+           'queue': self.queue,
+           'counter': self.counter,
+           'width': conf['width'],
+           'height': conf['height'],
+           'display': conf['display']
+        }
+        self.thread_list = []
         for i in range(self.min_capturer_num):
-            self.capturer_list.append(FrameCapturer(self.queue, self.counter, self.conf))
+            self.thread_list.append(FrameCapturer(self.thread_conf))
     
     # キャプチャを開始させるメソッド
     def init(self):
         # スレッドを起動
-        for capturer in self.capturer_list:
-            capturer.start()
+        for thread in self.thread_list:
+            thread.start()
         
         # キューにフレームが充填されるまで待機
         while not self.queue.full():
             sleep(1)
+        output_console('Captured from Display :%d' % self.thread_conf['display'])
     
     # スレッド数を増やすメソッド
-    def increase_capturer(self):
+    def increase_thread(self):
         # 起動してスレッドリストに追加
-        if len(self.capturer_list) < self.max_capturer_num:
-            capturer = FrameCapturer(self.queue, self.counter, self.conf)
-            capturer.start()
-            self.capturer_list.append(capturer)
+        if len(self.thread_list) < self.max_capturer_num:
+            thread = FrameCapturer(self.thread_conf)
+            thread.start()
+            self.thread_list.append(thread)
     
     # スレッド数を減らすメソッド
-    def decrease_capturer(self):
-        if len(self.capturer_list) > self.min_capturer_num:
-            self.capturer_list[-1].terminate()
-            self.capturer_list.pop()
+    def decrease_thread(self):
+        if len(self.thread_list) > self.min_capturer_num:
+            self.thread_list[-1].terminate()
+            self.thread_list.pop()
     
     # スレッド数を調整するメソッド
     def optimize(self):
@@ -70,9 +80,14 @@ class CapturerManager:
         
         # 1以上減ならスレッド追加、2以上増ならスレッド除去
         if queue_diff<=-1 or self.queue.empty():
-            self.increase_capturer()
+            self.increase_thread()
         elif queue_diff >= 2:
-            self.decrease_capturer()
+            self.decrease_thread()
+    
+    # 全スレッドを終了させるメソッド
+    def terminate_all(self):
+        for thread in self.thread_list:
+            thread.terminate()
     
     # キューからフレームを取り出すメソッド
     def pop_frame(self):

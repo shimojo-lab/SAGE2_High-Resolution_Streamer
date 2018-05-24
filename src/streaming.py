@@ -10,14 +10,43 @@ class FrameStreamer:
     # コンストラクタ
     def __init__(self, conf):
         # パラメータを設定
-        self.conf = conf['client']
+        self.streamer_conf = {
+           'app_id': None,
+           'title': 'SAGE2_SS',
+           'color': '#cccc00',
+           'width': conf['width'],
+           'height': conf['height'],
+           'compression': conf['compression'],
+           'encoding': 'base64'
+        }
         
-        # システムを初期化
-        self.capturer_mgr = CapturerManager(conf["client"])  # キャプチャ用スレッド管理部
-        self.wsio = WebSocketIO(conf['server'])          # WebSocket通信部
+        # WebSocket制御部を初期化
+        self.wsio = WebSocketIO({
+           'ip': conf['server_ip'],
+           'port': conf['server_port'],
+           'ws_tag': '#WSIO#addListener',
+           'ws_id': '0000',
+           'interval': 0.001
+        })
+        
+        # キャプチャ制御部を初期化
+        self.capturer_mgr = CapturerManager({
+           'display': conf['display'],
+           'width': conf['width'],
+           'height': conf['height'],         
+           'depth': conf['depth'],
+           'compression': conf['compression'],
+           'quality': conf['quality'],
+           'queue_size': conf['queue_size'],
+           'min_capturer_num': conf['min_capturer_num'],
+           'max_capturer_num': conf['max_capturer_num']
+        })
     
     # デストラクタ
     def __del__(self):
+        # 全スレッドを停止
+        self.capturer_mgr.terminate_all()
+        
         # ソケットを閉じて終了
         output_console('Connection closed')
         self.wsio.on_close()
@@ -25,20 +54,18 @@ class FrameStreamer:
     # ストリーミングを開始するメソッド
     def start_stream(self, data):
         # ストリーミング開始を通知
-        self.app_id = data['UID'] + '|0'
-        frame = self.capturer_mgr.pop_frame()
-        request = {
-            'id': self.app_id,
-            'title': self.conf['title'],
-            'color': self.conf['color'],
-            'width': self.conf['width'],
-            'height': self.conf['height'],
-            'src': frame,
-            'type': 'image/%s' % self.conf['compression'],
-            'encoding': 'base64'
-        }
+        self.streamer_conf['app_id'] = data['UID'] + '|0' 
         self.wsio.emit('requestToStartMediaStream', {})
-        self.wsio.emit('startNewMediaStream', request)
+        self.wsio.emit('startNewMediaStream', {
+           'id': self.streamer_conf['app_id'],
+           'title': self.streamer_conf['title'],
+           'color': self.streamer_conf['color'],
+           'width': self.streamer_conf['width'],
+           'height': self.streamer_conf['height'],
+           'src': self.capturer_mgr.pop_frame(),
+           'type': 'image/%s' % self.streamer_conf['compression'],
+           'encoding': self.streamer_conf['encoding']
+        })
         output_console('Streaming started')
     
     # 次番のフレームを送信するメソッド
@@ -47,16 +74,14 @@ class FrameStreamer:
         self.capturer_mgr.optimize()
         
         # フレームを取得してSAGE2サーバへ送信
-        frame = self.capturer_mgr.pop_frame()
-        request = {
-            'id': self.app_id,
-            'state': {
-                'src': frame,
-                'type': 'image/%s' % self.conf['compression'],
-                'encoding': 'base64'
-            }
-        }
-        self.wsio.emit('updateMediaStreamFrame', request)
+        self.wsio.emit('updateMediaStreamFrame', {
+           'id': self.streamer_conf['app_id'],
+           'state': {
+               'src': self.capturer_mgr.pop_frame(),
+               'type': 'image/%s' % self.streamer_conf['compression'],
+               'encoding': self.streamer_conf['encoding']
+           }
+        })
     
     # ソケットを開いた時のコールバック
     def on_open(self):
@@ -67,16 +92,15 @@ class FrameStreamer:
         self.wsio.on('requestNextFrame', self.send_next_frame)
         
         # 送信元の情報を通知
-        request = {
-            'clientType': self.conf['title'],
-            'requests': {
-                'config': False,
-                'version': False,
-                'time': False,
-                'console': False
-            }
-        }
-        self.wsio.emit('addClient', request)
+        self.wsio.emit('addClient', {
+           'clientType': self.streamer_conf['title'],
+           'requests': {
+              'config': False,
+              'version': False,
+              'time': False,
+              'console': False
+           }
+        })
     
     # ストリーミングを開始するメソッド
     def init(self):

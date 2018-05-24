@@ -1,5 +1,5 @@
 # *-* encoding: utf-8 *-*
-## capturer.py (画面キャプチャ部)
+## capture_thread.py (画面キャプチャスレッド)
 
 from threading import Thread
 from subprocess import Popen, PIPE
@@ -8,18 +8,18 @@ from base64 import b64encode
 # 別スレッドでキャプチャを行うクラス
 class FrameCapturer(Thread):
     # コンストラクタ (パラメータを設定)
-    def __init__(self, queue, counter, conf):
+    def __init__(self, conf):
         super(FrameCapturer, self).__init__()
-        self.queue = queue              # フレーム用キュー
-        self.counter = counter          # フレーム番号管理部
-        self.active = True              # スレッド停止用のフラグ
+        self.queue = conf['queue']      # フレーム用キュー
+        self.counter = conf['counter']  # フレーム番号管理部
         self.width = conf['width']      # フレームの横の長さ
         self.height = conf['height']    # フレームの縦の長さ
         self.display = conf['display']  # フレームのディスプレイ番号
+        self.active = True              # スレッド停止用のフラグ
         
         # スクリーンショット用コマンド
         self.cmd = 'ffmpeg -loglevel quiet -f x11grab '
-        self.cmd += '-video_size %sx%s ' % (self.width, self.height)
+        self.cmd += '-video_size %dx%d ' % (self.width, self.height)
         self.cmd += '-i :%s -vframes 1 -f image2pipe -' % self.display
     
     # フレームを取得するメソッド
