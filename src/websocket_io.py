@@ -1,13 +1,13 @@
 # *-* coding: utf-8 *-*
-## io_websocket.py (WebSocket通信部)
+## websocket_io.py (WebSocket通信部)
 
 from tornado import websocket, ioloop
 import json
 from threading import Timer
 from .utils import *
 
-WS_TAG, WS_ID = '#WSIO#addListener', '0000'
-CONSOLE = 'SAGE2_Streamer>'
+WS_TAG = '#WSIO#addListener'
+WS_ID = '0000'
 
 # WebSocketの読み書きを行うクラス
 class WebSocketIO():
