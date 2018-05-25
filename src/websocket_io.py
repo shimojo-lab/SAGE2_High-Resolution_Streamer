@@ -36,7 +36,7 @@ class WebSocketIO():
             self.ioloop = ioloop.IOLoop.instance()
             self.ioloop.start()
         except KeyboardInterrupt:
-            output_console('exit')
+            normal_output('exit')
     
     # ソケットを閉じるメソッド
     def close(self):

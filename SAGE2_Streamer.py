@@ -4,7 +4,6 @@
 import json
 from os import path
 from src.utils import nonbreak_output
-from src.vnc_handler import VNCServerHandler
 from src.streaming import FrameStreamer
 from src.thread_manager import ThreadManager
 from src.websocket_io import WebSocketIO
@@ -15,16 +14,6 @@ def main():
     conf_path = path.dirname(path.abspath(__file__)) + '/config.json'
     conf = json.load(open(conf_path, 'r'))
     
-    # VNCサーバを再起動 (設定時のみ)
-    nonbreak_output('Reseting VNC server')
-    vnc_handler = VNCServerHandler(flag=conf['vnc_reset'],
-                                   path=conf['vnc_path'],
-                                   display=conf['display'],
-                                   width=conf['width'],
-                                   height=conf['height'],
-                                   depth=conf['depth'])
-    vnc_handler.reset()
-       
     # スレッド管理モジュールを初期化
     nonbreak_output('Preparing for screen capture')
     thread_mgr = ThreadManager(min_threads=conf['min_capturer_num'],
@@ -32,7 +21,7 @@ def main():
                                queue_size=conf['queue_size'],
                                method=conf['capture_method'],
                                display=conf['display'],
-                               width=conf['display'],
+                               width=conf['width'],
                                height=conf['height'],
                                depth=conf['depth'],
                                compression=conf['compression'],
@@ -59,6 +48,5 @@ def main():
 
 ## Main
 if __name__ == '__main__':
-    print('')
     main()
 

@@ -20,7 +20,6 @@ class FrameStreamer():
     # デストラクタ
     def __del__(self):
         # 全スレッドを停止
-        nonbreak_output('Terminating all threads...')
         self.thread_mgr.terminate_all()
         status_output(True)
         

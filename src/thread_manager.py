@@ -18,26 +18,40 @@ class ThreadManager:
         self.queue = PriorityQueue(maxsize=queue_size)  # キュー
         self.pre_queue_size = 0         # 全時刻でのキュー内フレーム数
         self.counter = FrameCounter()   # フレームカウンター
+        self.display = display          # ディスプレイ番号
         
         # キャプチャ用のコマンドを設定
+        self.cmd = self.make_capture_command(method, width, height, depth, quality, compression)
+        if self.cmd == None:
+            error_output('Capture method is invalid')
+            exit(1)
+        
+        # スレッドリストを初期化
+        for i in range(self.min_threads):
+            self.thread_list.append(FrameCapturer(self.queue, self.counter, self.cmd))
+    
+    # キャプチャ用のコマンドを生成するメソッド
+    def make_capture_command(self, method, width, height, depth, quality, compression):
+        cmd = None
         if method == 'ffmpeg':
+            if compression == 'jpeg' or compression == 'jpg':
+                compression = 'mjpeg'
+            q = 100 - quality + 1
             cmd = [
                 'ffmpeg',
                 '-loglevel', 'quiet',
-                '-f', 'x11grab', '-an',
+                '-f', 'x11grab',
                 '-video_size', '%dx%d' % (width, height),
-                '-i', ':%d' % display,
-                '-vcodec', 'rawvideo',
-                '-preset', 'ultrafast',
-                '-vframes', '1',
+                '-i', ':%d.0+0,0' % self.display,
                 '-f', 'image2pipe',
-                '-vcodec', 'mjpeg',
-                '-qscale:v', str(quality), '-'
+                '-vcodec', compression, '-vframes', '1',
+                '-qmin', '1', '-qmax', '100', '-q', str(q),
+                'pipe:'
             ]
         elif method == 'xwd':
             cmd = [
                 'xwd',
-                '-display', ':%d' % display,
+                '-display', ':%d' % self.display,
                 '-root', '|',
                 'convert', '-',
                 '-depth', str(depth),
@@ -47,27 +61,13 @@ class ThreadManager:
         elif method == 'import':
             cmd = [
                 'import',
-                '-display', ':%d' % display,
+                '-display', ':%d' % self.display,
                 '-w', 'root',
                 '-depth', str(depth),
                 '-quality', str(quality),
                 '%s:-' % compression
             ]
-        else:
-            error_output('Capture method is invalid')
-            exit(1)
-        
-        # スレッドリストを初期化
-        self.thread_conf = {
-            'queue': self.queue,
-            'counter': self.counter,
-            'width': width,
-            'height': height,
-            'display': display,
-            'command': cmd
-        }
-        for i in range(self.min_threads):
-            self.thread_list.append(FrameCapturer(self.thread_conf))
+        return cmd
     
     # キャプチャを開始させるメソッド
     def init(self):
@@ -79,13 +79,13 @@ class ThreadManager:
         while not self.queue.full():
             sleep(1)
         status_output(True)
-        normal_output('Captured from Display :%d' % self.thread_conf['display'])
+        normal_output('Captured from Display :%d' % self.display)
     
     # スレッド数を増やすメソッド
     def increase_thread(self):
         # 起動してスレッドリストに追加
         if len(self.thread_list) < self.max_threads:
-            thread = FrameCapturer(self.thread_conf)
+            thread = FrameCapturer(self.queue, self.counter, self.cmd)
             thread.start()
             self.thread_list.append(thread)
     
