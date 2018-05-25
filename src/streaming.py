@@ -17,29 +17,20 @@ class FrameStreamer():
         self.compression = compression           # フレームの圧縮形式
         self.encoding = 'base64'                 # フレームのエンコード形式
     
-    # デストラクタ
-    def __del__(self):
-        # 全スレッドを停止
-        self.thread_mgr.terminate_all()
-        status_output(True)
-        
-        # ソケットを閉じて終了
-        normal_output('Connection closed')
-        self.ws_io.on_close()
-    
     # ストリーミングの開始を通知するメソッド
-    def init_stream(self, data):
+    def init_streaming(self, data):
         self.app_id = data['UID'] + '|0' 
         self.ws_io.emit('requestToStartMediaStream', {})
         
         # SAGE2サーバにフレームの情報をを通知
+        frame = self.thread_mgr.pop_frame()[1]
         self.ws_io.emit('startNewMediaStream', {
             'id': self.app_id,
             'title': self.title,
             'color': self.color,
             'width': self.width,
             'height': self.height,
-            'src': self.thread_mgr.pop_frame(),
+            'src': frame,
             'type': 'image/%s' % self.compression,
             'encoding': self.encoding
         })
@@ -51,23 +42,37 @@ class FrameStreamer():
         self.thread_mgr.optimize()
         
         # フレームを取得してSAGE2サーバへ送信
-        next_frame = self.thread_mgr.pop_frame()
+        frame_num, frame = self.thread_mgr.pop_frame()
         self.ws_io.emit('updateMediaStreamFrame', {
-           'id': self.app_id,
-           'state': {
-               'src': next_frame,
-               'type': 'image/%s' % self.compression,
-               'encoding': self.encoding
-           }
+            'id': self.app_id,
+            'state': {
+                'src': frame,
+                'type': 'image/%s' % self.compression,
+                'encoding': self.encoding,
+                'frame_number': frame_num
+            }
         })
+    
+    # ストリーミングを停止するメソッド
+    def stop_streaming(self):
+        # 全スレッドを停止
+        self.thread_mgr.terminate_all()
+        status_output(True)
+        
+        # ソケットを閉じて終了
+        normal_output('Connection closed')
+        self.ws_io.on_close()
     
     # ソケットの準備が完了した時のコールバック
     def on_open(self):
-        # ストリーミングの開始を通知
-        self.ws_io.set_recv_callback('initialize', self.init_stream)
+        # ストリーミング開始時のイベントハンドラを作成
+        self.ws_io.set_recv_callback('initialize', self.init_streaming)
         
-        # 次番のフレームを送信
+        # 次番のフレームの要求時のイベントハンドラを作成
         self.ws_io.set_recv_callback('requestNextFrame', self.send_next_frame)
+        
+        # ストリーミング停止時のイベントハンドラを作成
+        self.ws_io.set_recv_callback('stopMediaCapture', self.stop_streaming)
         
         # フレーム送信元の情報を通知
         self.ws_io.emit('addClient', {

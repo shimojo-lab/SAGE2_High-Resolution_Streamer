@@ -13,13 +13,13 @@ class WebSocketIO():
         # パラメータを設定
         self.socket = None         # 通信用のソケット
         self.open_callback = None  # ソケットを開いた時のコールバック
-        self.msgs = {}             # 
-        self.alias_count = 1       # 
-        self.ws_tag = ws_tag       # 
+        self.msgs = {}             # コールバックリスト
+        self.alias_count = 1       # エイリアスカウント
+        self.ws_tag = ws_tag       # ソケットタグ
         self.interval = interval   # 送信失敗時の待ち時間
         self.addr = 'ws://%s:%d' % (ip, port)    # SAGE2サーバのアドレス
-        self.remote_listeners = {ws_tag: ws_id}  # 
-        self.local_listeners = {ws_id: ws_tag}   # 
+        self.remote_listeners = {ws_tag: ws_id}  # サーバのAPIリスト
+        self.local_listeners = {ws_id: ws_tag}   # ローカルのAPIリスト
     
     # ソケットを開くメソッド
     def open(self, callback):

@@ -1,7 +1,8 @@
 # *-* encoding: utf-8 *-*
 ## thread_manager.py (キャプチャ用スレッド管理部)
 
-from queue import PriorityQueue
+#from queue import PriorityQueue
+from queue import Queue
 from time import sleep
 from .utils import normal_output, status_output, error_output
 from .capturer_thread import FrameCapturer
@@ -15,7 +16,7 @@ class ThreadManager:
         self.thread_list = []           # スレッドリスト
         self.min_threads = min_threads  # 最小スレッド数
         self.max_threads = max_threads  # 最大スレッド数
-        self.queue = PriorityQueue(maxsize=queue_size)  # キュー
+        self.queue = Queue(maxsize=queue_size)  # キュー
         self.pre_queue_size = 0         # 全時刻でのキュー内フレーム数
         self.counter = FrameCounter()   # フレームカウンター
         self.display = display          # ディスプレイ番号
@@ -34,39 +35,25 @@ class ThreadManager:
     def make_capture_command(self, method, width, height, depth, quality, compression):
         cmd = None
         if method == 'ffmpeg':
-            if compression == 'jpeg' or compression == 'jpg':
-                compression = 'mjpeg'
+            compression = 'mjpeg' if compression in ('jpeg', 'jpg') else compression
             q = 100 - quality + 1
-            cmd = [
-                'ffmpeg',
-                '-loglevel', 'quiet',
-                '-f', 'x11grab',
-                '-video_size', '%dx%d' % (width, height),
-                '-i', ':%d.0+0,0' % self.display,
-                '-f', 'image2pipe',
-                '-vcodec', compression, '-vframes', '1',
-                '-qmin', '1', '-qmax', '100', '-q', str(q),
-                'pipe:'
-            ]
+            cmd = 'ffmpeg -loglevel quiet '
+            cmd += '-f x11grab -video_size %dx%d ' % (width, height)
+            cmd += '-i :%d.0+0,0 ' % self.display
+            cmd += '-f image2pipe -vcodec %s -vframes 1 ' % compression
+            cmd += '-qmin 1 -qmax 100 -q %d pipe:-' % q
         elif method == 'xwd':
-            cmd = [
-                'xwd',
-                '-display', ':%d' % self.display,
-                '-root', '|',
-                'convert', '-',
-                '-depth', str(depth),
-                '-quality', str(quality),
-                '%s:-' % compression
-            ]
+            cmd = 'xwd -display :%d -root ' % self.display
+            cmd += '| convert - '
+            cmd += '-depth %d ' % depth
+            cmd += '-quality %d ' % quality
+            cmd += '%s:-' % compression
         elif method == 'import':
-            cmd = [
-                'import',
-                '-display', ':%d' % self.display,
-                '-w', 'root',
-                '-depth', str(depth),
-                '-quality', str(quality),
-                '%s:-' % compression
-            ]
+            cmd = 'import '
+            cmd += '-display :%d -w root ' % self.display
+            cmd += '-depth %d ' % depth
+            cmd += '-quality %d ' % quality
+            cmd += '%s:-' % compression
         return cmd
     
     # キャプチャを開始させるメソッド
@@ -115,6 +102,6 @@ class ThreadManager:
     
     # キューからフレームを取り出すメソッド
     def pop_frame(self):
-        frame = self.queue.get()[1]
-        return frame
+        frame_num, frame = self.queue.get()
+        return (frame_num, frame)
 

@@ -18,8 +18,11 @@ class FrameCapturer(Thread):
     
     # フレームを取得するメソッド
     def get_frame(self):
-        # 画面キャプチャを実行 (失敗時はやり直し)
-        raw_frame = run(self.cmd, stdout=PIPE).stdout
+        # 画面キャプチャを実行 (失敗時はNoneを返す)
+        try:
+            raw_frame = run(self.cmd, shell=True, stdout=PIPE).stdout
+        except:
+            return None
         
         # base64に変換
         str_frame = b64encode(raw_frame).decode('utf-8')
@@ -36,5 +39,6 @@ class FrameCapturer(Thread):
     def run(self):
         while self.active:
             frame_set = self.get_frame()
-            self.queue.put(frame_set)
+            if frame_set != None:
+                self.queue.put(frame_set)
 
