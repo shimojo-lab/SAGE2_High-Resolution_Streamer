@@ -2,7 +2,7 @@
 # vnc_handler.py (VNCサーバ管理モジュール)
 
 from subprocess import run, PIPE
-from .utils import nonbreak_output, status_output, error_output
+from .utils import status_output, error_output
 
 # VNCサーバを扱うクラス
 class VNCServerHandler():
@@ -52,7 +52,6 @@ class VNCServerHandler():
     # VNCサーバを再起動するメソッド
     def reset(self):
         if self.flag == 'True':
-            nonbreak_output('Resetting VNC server')
             self.halt_server()
             self.launch_server()
 

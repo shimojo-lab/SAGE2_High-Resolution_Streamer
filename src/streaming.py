@@ -1,7 +1,7 @@
 # *-* encoding: utf-8 *-*
 ## streaming.py (ストリーム送信部)
 
-from .utils import normal_output, nonbreak_output, status_output
+from .utils import normal_output, status_output
 
 ## フレームをストリーミング配信するクラス
 class FrameStreamer():
@@ -62,7 +62,7 @@ class FrameStreamer():
            }
         })
     
-    # ソケットを開いた時のコールバック
+    # ソケットの準備が完了した時のコールバック
     def on_open(self):
         # ストリーミングの開始を通知
         self.ws_io.set_recv_callback('initialize', self.init_stream)
@@ -80,14 +80,4 @@ class FrameStreamer():
                 'console': False
             }
         })
-    
-    # ストリーミングを開始するメソッド
-    def init(self):
-        # キャプチャ用スレッドを起動
-        nonbreak_output('Preparing for screen capture')
-        self.thread_mgr.init()
-        
-        # ソケットを準備
-        nonbreak_output('Preparing for connection')
-        self.ws_io.open(self.on_open)
 
