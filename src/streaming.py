@@ -1,73 +1,50 @@
 # *-* encoding: utf-8 *-*
 ## streaming.py (ストリーム送信部)
 
-from .utils import *
-from .thread_manager import ThreadManager
-from .websocket_io import *
+from .utils import normal_output, nonbreak_output, status_output
 
 ## フレームをストリーミング配信するクラス
-class FrameStreamer:
+class FrameStreamer():
     # コンストラクタ
-    def __init__(self, conf):
+    def __init__(self, ws_io, thread_mgr, width, height, compression):
         # パラメータを設定
-        self.streamer_conf = {
-           'app_id': None,
-           'title': 'SAGE2_Streamer',
-           'color': '#cccc00',
-           'width': conf['width'],
-           'height': conf['height'],
-           'compression': conf['compression'],
-           'encoding': 'base64'
-        }
-        
-        # WebSocket制御部を初期化
-        self.wsio = WebSocketIO({
-           'ip': conf['server_ip'],
-           'port': conf['server_port'],
-           'ws_tag': '#WSIO#addListener',
-           'ws_id': '0000',
-           'interval': 0.001
-        })
-        
-        # スレッド制御部を初期化
-        self.thread_mgr = ThreadManager({
-           'display': conf['display'],
-           'width': conf['width'],
-           'height': conf['height'],         
-           'depth': conf['depth'],
-           'method': conf['capture_method'],
-           'compression': conf['compression'],
-           'quality': conf['quality'],
-           'queue_size': conf['queue_size'],
-           'min_capturer_num': conf['min_capturer_num'],
-           'max_capturer_num': conf['max_capturer_num']
-        })
+        self.ws_io = ws_io                       # WebSocket入出力モジュール
+        self.thread_mgr = thread_mgr             # スレッド管理モジュール
+        self.app_id = None                       # SAGE2アプリケーションID
+        self.title = 'SAGE2_Streamer'            # SAGE UI上でのウィンドウ名
+        self.color = '#cccc00'                   # SAGE UI上でのウィンドウカラー
+        self.width, self.height = width, height  # フレームのサイズ
+        self.compression = compression           # フレームの圧縮形式
+        self.encoding = 'base64'                 # フレームのエンコード形式
     
     # デストラクタ
     def __del__(self):
         # 全スレッドを停止
+        nonbreak_output('Terminating all threads...')
         self.thread_mgr.terminate_all()
+        status_output(True)
         
         # ソケットを閉じて終了
-        output_console('Connection closed')
-        self.wsio.on_close()
+        normal_output('Connection closed')
+        self.ws_io.on_close()
     
-    # ストリーミングを開始するメソッド
-    def start_stream(self, data):
-        # ストリーミング開始を通知
-        self.streamer_conf['app_id'] = data['UID'] + '|0' 
-        self.wsio.emit('requestToStartMediaStream', {})
-        self.wsio.emit('startNewMediaStream', {
-           'id': self.streamer_conf['app_id'],
-           'title': self.streamer_conf['title'],
-           'color': self.streamer_conf['color'],
-           'width': self.streamer_conf['width'],
-           'height': self.streamer_conf['height'],
-           'src': self.thread_mgr.pop_frame(),
-           'type': 'image/%s' % self.streamer_conf['compression'],
-           'encoding': self.streamer_conf['encoding']
+    # ストリーミングの開始を通知するメソッド
+    def init_stream(self, data):
+        self.app_id = data['UID'] + '|0' 
+        self.ws_io.emit('requestToStartMediaStream', {})
+        
+        # SAGE2サーバにフレームの情報をを通知
+        self.ws_io.emit('startNewMediaStream', {
+            'id': self.app_id,
+            'title': self.title,
+            'color': self.color,
+            'width': self.width,
+            'height': self.height,
+            'src': self.thread_mgr.pop_frame(),
+            'type': 'image/%s' % self.compression,
+            'encoding': self.encoding
         })
-        output_console('Streaming started')
+        normal_output('Start frame streaming')
     
     # 次番のフレームを送信するメソッド
     def send_next_frame(self, data):
@@ -75,41 +52,42 @@ class FrameStreamer:
         self.thread_mgr.optimize()
         
         # フレームを取得してSAGE2サーバへ送信
-        self.wsio.emit('updateMediaStreamFrame', {
-           'id': self.streamer_conf['app_id'],
+        next_frame = self.thread_mgr.pop_frame()
+        self.ws_io.emit('updateMediaStreamFrame', {
+           'id': self.app_id,
            'state': {
-               'src': self.thread_mgr.pop_frame(),
-               'type': 'image/%s' % self.streamer_conf['compression'],
-               'encoding': self.streamer_conf['encoding']
+               'src': next_frame,
+               'type': 'image/%s' % self.compression,
+               'encoding': self.encoding
            }
         })
     
     # ソケットを開いた時のコールバック
     def on_open(self):
-        # ストリーミング開始を通知
-        self.wsio.on('initialize', self.start_stream)
+        # ストリーミングの開始を通知
+        self.ws_io.set_recv_callback('initialize', self.init_stream)
         
-        # 次のフレームを送信
-        self.wsio.on('requestNextFrame', self.send_next_frame)
+        # 次番のフレームを送信
+        self.ws_io.set_recv_callback('requestNextFrame', self.send_next_frame)
         
-        # 送信元の情報を通知
-        self.wsio.emit('addClient', {
-           'clientType': self.streamer_conf['title'],
-           'requests': {
-              'config': False,
-              'version': False,
-              'time': False,
-              'console': False
-           }
+        # フレーム送信元の情報を通知
+        self.ws_io.emit('addClient', {
+            'clientType': self.title,
+            'requests': {
+                'config': False,
+                'version': False,
+                'time': False,
+                'console': False
+            }
         })
     
     # ストリーミングを開始するメソッド
     def init(self):
         # キャプチャ用スレッドを起動
-        output_console('Preparing for screenshot...')
+        nonbreak_output('Preparing for screen capture')
         self.thread_mgr.init()
         
         # ソケットを準備
-        output_console('Preparing for WebSocket...')
-        self.wsio.open(self.on_open)
+        nonbreak_output('Preparing for connection')
+        self.ws_io.open(self.on_open)
 

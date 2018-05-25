@@ -4,27 +4,34 @@
 from tornado import websocket, ioloop
 import json
 from threading import Timer
-from .utils import *
+from .utils import normal_output, status_output, error_output, warning_output
 
 # WebSocketの読み書きを行うクラス
 class WebSocketIO():
     # コンストラクタ
-    def __init__(self, conf):
+    def __init__(self, ip, port, ws_tag, ws_id, interval):
         # パラメータを設定
         self.socket = None         # 通信用のソケット
         self.open_callback = None  # ソケットを開いた時のコールバック
         self.msgs = {}             # 
         self.alias_count = 1       # 
-        self.ws_tag = conf['ws_tag']                             # 
-        self.interval = conf['interval']                         # 送信失敗時の待ち時間
-        self.addr = 'ws://%s:%d' % (conf['ip'], conf['port'])    # SAGE2サーバのアドレス
-        self.remote_listeners = {conf['ws_tag']: conf['ws_id']}  # 
-        self.local_listeners = {conf['ws_id']: conf['ws_tag']}   # 
+        self.ws_tag = ws_tag       # 
+        self.interval = interval   # 送信失敗時の待ち時間
+        self.addr = 'ws://%s:%d' % (ip, port)    # SAGE2サーバのアドレス
+        self.remote_listeners = {ws_tag: ws_id}  # 
+        self.local_listeners = {ws_id: ws_tag}   # 
     
     # ソケットを開くメソッド
     def open(self, callback):
-        websocket.websocket_connect(self.addr, callback=self.on_open, on_message_callback=self.on_message)
+        # WebSocket通信用のソケットを開く
+        websocket.websocket_connect(self.addr,
+                                    callback=self.on_open,
+                                    on_message_callback=self.on_message)
+        
+        # ソケットの準備が終わった時のコールバックを設定
         self.open_callback = callback
+        
+        # I/Oループを開始
         try:
             self.ioloop = ioloop.IOLoop.instance()
             self.ioloop.start()
@@ -33,22 +40,29 @@ class WebSocketIO():
     
     # ソケットを閉じるメソッド
     def close(self):
+        # ソケットを閉じてI/Oループを停止
         self.socket.close()
         self.ioloop.stop()
     
     # ソケットを開いた時のコールバック
     def on_open(self, socket):
-        output_console('Connected to %s' % self.addr)
+        # 開いたソケットを取得
+        status_output(True)
+        normal_output('Connected to %s' % self.addr)
         self.socket = socket.result()
+        
+        # コールバックを実行
         self.open_callback()
     
     # ソケットを閉じた時のコールバック
     def on_close(self):
-        output_console('Socket closed')
+        # ソケットを閉じてI/Oループを停止
+        normal_output('Socket closed')
         self.ioloop.stop()
     
     # 受信時のコールバック
     def on_message(self, msg):
+        # 受信メッセージをパース
         if msg == None:
             self.on_close()
         else:
@@ -61,25 +75,25 @@ class WebSocketIO():
                     else:
                         self.msgs[f_name](json_msg['d'])
                 else:
-                    output_console('No handler for massage')
+                    warning_output('No handler for massage')
             else:
-                output_console('Message format is invalid (not JSON)')
+                warning_output('Message format is invalid (not JSON)')
     
-    # 
-    def on(self, name, callback):
+    # 受信時のコールバックを設定するメソッド
+    def set_recv_callback(self, name, callback):
         alias = '%04x' % self.alias_count
         self.local_listeners[alias] = name
         self.msgs[name] = callback
         self.alias_count += 1
         self.emit(self.ws_tag, {'listener': name, 'alias': alias})
     
-    # データを送信するメソッド
+    # メッセージを送信するメソッド
     def emit(self, name, data, attempts=10):
         # メッセージ名の有無を確認
         if name==None or name=='':
-            output_console('Error: No message name specified')
+            warning_output('No message name specified')
         
-        # データをソケットに書き込み (失敗したらやり直し)
+        # メッセージをソケットに書き込み (失敗したらやり直し)
         if name in self.remote_listeners:
             alias = self.remote_listeners[name]
             msg = {'f': alias, 'd': data}
@@ -89,5 +103,5 @@ class WebSocketIO():
                 timer = Timer(self.interval, self.emit, [name, data, attempts-1])
                 timer.start()
             else:
-                output_console('Warning: Not sending message, recipient has no listener (%s)' % name)
+                warning_output('Not sending message, recipient has no listener (%s)' % name)
 

@@ -1,52 +1,23 @@
 # *-* encoding: utf-8 *-*
 ## thread_manager.py (キャプチャ用スレッド管理部)
 
-from threading import Lock, active_count
 from queue import PriorityQueue
 from time import sleep
-from .utils import *
-from .capturer_thread import *
-
-## フレーム番号を管理するクラス
-class FrameCounter(object):
-    # コンストラクタ (初期化)
-    def __init__(self):
-        self.count = 0
-        self.lock = Lock()
-    
-    # 最新のフレーム番号を取得するメソッド
-    def get_current_num(self):
-        with self.lock:
-            frame_num = self.count
-        return frame_num
-    
-    # 次のフレーム番号を取得するメソッド
-    def get_next_num(self):
-        with self.lock:
-            frame_num = self.count
-            self.count += 1
-        return frame_num
+from .utils import normal_output, status_output, error_output
+from .capturer_thread import FrameCapturer
+from .frame_counter import FrameCounter
 
 ## キャプチャ用スレッドを管理するクラス
 class ThreadManager:
     # コンストラクタ
-    def __init__(self, conf):
+    def __init__(self, min_threads, max_threads, queue_size, method, display, width, height, depth, compression, quality):
         # パラメータを設定
-        self.thread_list = []
-        self.min_thread_num = conf['min_capturer_num']
-        self.max_thread_num = conf['max_capturer_num']
-        method = conf['method']
-        width = conf['width']
-        height = conf['height']
-        depth = conf['depth']
-        display = conf['display']
-        compression = conf['compression']
-        quality = conf['quality']
-        
-        # キューとフレーム番号管理部を初期化
-        self.queue = PriorityQueue(maxsize=conf['queue_size'])
-        self.pre_queue_size = 0 
-        self.counter = FrameCounter()
+        self.thread_list = []           # スレッドリスト
+        self.min_threads = min_threads  # 最小スレッド数
+        self.max_threads = max_threads  # 最大スレッド数
+        self.queue = PriorityQueue(maxsize=queue_size)  # キュー
+        self.pre_queue_size = 0         # 全時刻でのキュー内フレーム数
+        self.counter = FrameCounter()   # フレームカウンター
         
         # キャプチャ用のコマンドを設定
         if method == 'ffmpeg':
@@ -83,7 +54,7 @@ class ThreadManager:
                 '%s:-' % compression
             ]
         else:
-            output_console('Error: Capture method is invalid')
+            error_output('Capture method is invalid')
             exit(1)
         
         # スレッドリストを初期化
@@ -95,7 +66,7 @@ class ThreadManager:
             'display': display,
             'command': cmd
         }
-        for i in range(self.min_thread_num):
+        for i in range(self.min_threads):
             self.thread_list.append(FrameCapturer(self.thread_conf))
     
     # キャプチャを開始させるメソッド
@@ -107,19 +78,20 @@ class ThreadManager:
         # キューにフレームが充填されるまで待機
         while not self.queue.full():
             sleep(1)
-        output_console('Captured from Display :%d' % self.thread_conf['display'])
+        status_output(True)
+        normal_output('Captured from Display :%d' % self.thread_conf['display'])
     
     # スレッド数を増やすメソッド
     def increase_thread(self):
         # 起動してスレッドリストに追加
-        if len(self.thread_list) < self.max_thread_num:
+        if len(self.thread_list) < self.max_threads:
             thread = FrameCapturer(self.thread_conf)
             thread.start()
             self.thread_list.append(thread)
     
     # スレッド数を減らすメソッド
     def decrease_thread(self):
-        if len(self.thread_list) > self.min_thread_num:
+        if len(self.thread_list) > self.min_threads:
             self.thread_list[-1].terminate()
             self.thread_list.pop()
     
