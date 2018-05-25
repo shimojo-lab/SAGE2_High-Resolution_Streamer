@@ -2,7 +2,7 @@
 ## streaming.py (ストリーム送信部)
 
 from .utils import *
-from .capturer_manager import *
+from .thread_manager import ThreadManager
 from .websocket_io import *
 
 ## フレームをストリーミング配信するクラス
@@ -12,7 +12,7 @@ class FrameStreamer:
         # パラメータを設定
         self.streamer_conf = {
            'app_id': None,
-           'title': 'SAGE2_SS',
+           'title': 'SAGE2_Streamer',
            'color': '#cccc00',
            'width': conf['width'],
            'height': conf['height'],
@@ -29,12 +29,13 @@ class FrameStreamer:
            'interval': 0.001
         })
         
-        # キャプチャ制御部を初期化
-        self.capturer_mgr = CapturerManager({
+        # スレッド制御部を初期化
+        self.thread_mgr = ThreadManager({
            'display': conf['display'],
            'width': conf['width'],
            'height': conf['height'],         
            'depth': conf['depth'],
+           'method': conf['capture_method'],
            'compression': conf['compression'],
            'quality': conf['quality'],
            'queue_size': conf['queue_size'],
@@ -45,7 +46,7 @@ class FrameStreamer:
     # デストラクタ
     def __del__(self):
         # 全スレッドを停止
-        self.capturer_mgr.terminate_all()
+        self.thread_mgr.terminate_all()
         
         # ソケットを閉じて終了
         output_console('Connection closed')
@@ -62,7 +63,7 @@ class FrameStreamer:
            'color': self.streamer_conf['color'],
            'width': self.streamer_conf['width'],
            'height': self.streamer_conf['height'],
-           'src': self.capturer_mgr.pop_frame(),
+           'src': self.thread_mgr.pop_frame(),
            'type': 'image/%s' % self.streamer_conf['compression'],
            'encoding': self.streamer_conf['encoding']
         })
@@ -71,13 +72,13 @@ class FrameStreamer:
     # 次番のフレームを送信するメソッド
     def send_next_frame(self, data):
         # キャプチャ用スレッド数を調整
-        self.capturer_mgr.optimize()
+        self.thread_mgr.optimize()
         
         # フレームを取得してSAGE2サーバへ送信
         self.wsio.emit('updateMediaStreamFrame', {
            'id': self.streamer_conf['app_id'],
            'state': {
-               'src': self.capturer_mgr.pop_frame(),
+               'src': self.thread_mgr.pop_frame(),
                'type': 'image/%s' % self.streamer_conf['compression'],
                'encoding': self.streamer_conf['encoding']
            }
@@ -106,7 +107,7 @@ class FrameStreamer:
     def init(self):
         # キャプチャ用スレッドを起動
         output_console('Preparing for screenshot...')
-        self.capturer_mgr.init()
+        self.thread_mgr.init()
         
         # ソケットを準備
         output_console('Preparing for WebSocket...')

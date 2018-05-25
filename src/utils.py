@@ -23,9 +23,8 @@ class VNCServerHandler():
     def halt_server(self):
         # 起動中のVNCサーバを停止
         halt_cmd = [
-           self.path,
-           '-kill',
-           ':%d' % self.display
+            self.path,
+            '-kill', ':%d' % self.display
         ]
         try:
             msg = run(halt_cmd, stderr=PIPE)
@@ -38,11 +37,10 @@ class VNCServerHandler():
     # VNCサーバを起動するメソッド
     def launch_server(self):
         launch_cmd = [
-           self.path,
-           '-geometry',
-           '%dx%d' % (self.width, self.height),
-           '-depth',
-           str(self.depth)
+            self.path,
+            '-geometry', '%dx%d' % (self.width, self.height),
+            '-depth', str(self.depth),
+            ':%s' % self.display
         ]
         try:
             msg = run(launch_cmd, stderr=PIPE)

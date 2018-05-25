@@ -5,6 +5,7 @@
   "width": 2732,
   "height": 1536,
   "depth": 24,
+  "capture_method": "ffmpeg",
   "compression": "png",
   "quality": 100,
   "queue_size": 8,

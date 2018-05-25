@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-## SAGE2_SS.py (SAGE2_SSの実行スクリプト)
+## SAGE2_Streamer.py (SAGE2_Streamerの実行スクリプト)
 
 import json
 from os import path
