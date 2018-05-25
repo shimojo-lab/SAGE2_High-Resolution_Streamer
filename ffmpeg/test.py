@@ -1,8 +1,7 @@
-import ffmpeg
+import subprocess
+import io
 
-stream = ffmpeg.input(':1.0+0,0', f='x11grab', video_size=(1000, 1000))
-stream = ffmpeg.output(stream, 'a.jpg',
-                       f='image2', vcodec='mjpeg', vframes=1, qmin=1, qmax=100, q=1000)
-print(ffmpeg.get_args(stream))
-ffmpeg.run(stream)
+buf = io.BytesIO()
+cmd = 'ffmpeg -f x11grab -i :1.0 -vcodec rawvideo -preset ultrafast -f mpegts pipe:1'
+buf = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE).stdout
 

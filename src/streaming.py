@@ -39,7 +39,11 @@ class FrameStreamer():
     # 次番のフレームを送信するメソッド
     def send_next_frame(self, data):
         # キャプチャ用スレッド数を調整
-        self.thread_mgr.optimize()
+        if self.a % 2 == 0:
+            self.thread_mgr.optimize()
+            print(self.thread_mgr.check_thread_num())
+            print(self.thread_mgr.check_queue_size())
+        self.a += 1
         
         # フレームを取得してSAGE2サーバへ送信
         frame_num, frame = self.thread_mgr.pop_frame()
@@ -54,17 +58,16 @@ class FrameStreamer():
         })
     
     # ストリーミングを停止するメソッド
-    def stop_streaming(self):
+    def stop_streaming(self, data):
         # 全スレッドを停止
         self.thread_mgr.terminate_all()
-        status_output(True)
         
-        # ソケットを閉じて終了
-        normal_output('Connection closed')
+        # ソケットを閉じる
         self.ws_io.on_close()
     
     # ソケットの準備が完了した時のコールバック
     def on_open(self):
+        self.a = 0
         # ストリーミング開始時のイベントハンドラを作成
         self.ws_io.set_recv_callback('initialize', self.init_streaming)
         

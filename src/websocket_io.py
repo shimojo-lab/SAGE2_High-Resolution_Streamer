@@ -57,7 +57,7 @@ class WebSocketIO():
     # ソケットを閉じた時のコールバック
     def on_close(self):
         # ソケットを閉じてI/Oループを停止
-        normal_output('Socket closed')
+        normal_output('Connection closed')
         self.ioloop.stop()
     
     # 受信時のコールバック

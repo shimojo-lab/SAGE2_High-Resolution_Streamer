@@ -10,12 +10,6 @@ class FrameCounter(object):
         self.count = 0
         self.lock = Lock()
     
-    # 最新のフレーム番号を取得するメソッド
-    def get_current_num(self):
-        with self.lock:
-            frame_num = self.count
-        return frame_num
-    
     # 次のフレーム番号を取得するメソッド
     def get_next_num(self):
         with self.lock:

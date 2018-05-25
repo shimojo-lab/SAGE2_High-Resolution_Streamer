@@ -14,7 +14,7 @@ class FrameCapturer(Thread):
         self.queue = queue      # フレーム用キュー
         self.counter = counter  # フレームカウンター
         self.cmd = cmd          # キャプチャ用のコマンド
-        self.active = True      # スレッド停止用のフラグ
+        self.active = True      # スレッドの終了フラグ
     
     # フレームを取得するメソッド
     def get_frame(self):
@@ -41,4 +41,5 @@ class FrameCapturer(Thread):
             frame_set = self.get_frame()
             if frame_set != None:
                 self.queue.put(frame_set)
+        return
 

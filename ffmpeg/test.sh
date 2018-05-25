@@ -9,7 +9,6 @@ ffmpeg -f x11grab \
 -video_size ${width}x${height} \
 -i :${display} \
 -f image2 \
--vcodec mjpeg \
--preset ultrafast \
--vframes 1 \
+-vcodec mjpeg -vframes 1 \
+a.jpg
 
