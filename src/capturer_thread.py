@@ -11,24 +11,29 @@ class FrameCapturer(Thread):
     def __init__(self, queue, counter, cmd):
         # パラメータを設定
         super(FrameCapturer, self).__init__()
-        self.queue = queue      # フレーム用キュー
-        self.counter = counter  # フレームカウンター
-        self.cmd = cmd          # キャプチャ用のコマンド
-        self.active = True      # スレッドの終了フラグ
+        self.queue = queue         # フレーム用キュー
+        self.counter = counter     # フレームカウンター
+        self.capture_cmd = cmd[0]  # キャプチャ用のコマンド
+        self.convert_cmd = cmd[1]  # 変換用のコマンド
+        self.active = True         # スレッドの終了フラグ
     
     # フレームを取得するメソッド
     def get_frame(self):
-        # 画面キャプチャを実行 (失敗時はNoneを返す)
+        # フレームを取得 (失敗時はNoneを返す)
         try:
-            raw_frame = run(self.cmd, shell=True, stdout=PIPE).stdout
+            # キャプチャを実行
+            raw_frame = run(self.capture_cmd, stdout=PIPE).stdout
+            
+            # フレーム番号を取得
+            frame_num = self.counter.get_next_num()
+            
+            # フレームを圧縮
+            converted_frame = run(self.convert_cmd, input=raw_frame, stdout=PIPE).stdout
         except:
             return None
         
-        # base64に変換
-        str_frame = b64encode(raw_frame).decode('utf-8')
-        
-        # フレーム番号を取得してまとめる
-        frame_num = self.counter.get_next_num()
+        # base64に変換してキューへ
+        str_frame = b64encode(converted_frame).decode('utf-8')
         return (frame_num, str_frame)
     
     # スレッドを終了するメソッド

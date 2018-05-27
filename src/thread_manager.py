@@ -1,7 +1,7 @@
 # *-* encoding: utf-8 *-*
 ## thread_manager.py (キャプチャ用スレッド管理部)
 
-from queue import Queue
+from queue import PriorityQueue
 from math import ceil
 from random import randrange
 from time import sleep
@@ -18,7 +18,7 @@ class ThreadManager:
         self.thread_list = []           # スレッドリスト
         self.min_threads = min_threads  # 最小スレッド数
         self.max_threads = max_threads  # 最大スレッド数
-        self.queue = Queue(queue_size)  # キュー
+        self.queue = PriorityQueue(queue_size)  # キュー
         self.queue_length = queue_size  # キューの長さ
         self.pre_queue_size = 0         # 全時刻でのキュー内フレーム数
         self.counter = FrameCounter()   # フレームカウンター
@@ -37,21 +37,29 @@ class ThreadManager:
     
     # キャプチャ用のコマンドを生成するメソッド
     def make_capture_command(self, method, width, height, depth, quality, compression):
-        cmd = None
+        convert_cmd = [
+            'convert', '-', '-thumbnail', '%dx%d' % (width, height),
+            '-depth', str(depth), '-quality', str(quality), '%s:-' % compression
+        ]
         if method == 'ffmpeg':
-            cmd = 'ffmpeg -loglevel quiet -f x11grab -video_size %dx%d ' % (width, height)
-            cmd += '-i :%d.0+0,0 -vcodec rawvideo ' % self.display
-            cmd += '-f image2pipe -vframes 1 -vcodec png pipe:- '
-            cmd += '| convert - -thumbnail %dx%d ' % (width, height)
-            cmd += '-depth %d -quality %d %s:-' % (depth, quality, compression)
+            capture_cmd = [
+                'ffmpeg', '-loglevel', 'quiet', '-f', 'x11grab',
+                '-video_size', '%dx%d' % (width, height),
+                '-i', ':%d.0+0,0' % self.display, '-vcodec', 'rawvideo',
+                '-f', 'image2pipe', '-vframes', '1', '-vcodec', 'png', 'pipe:-'
+            ]
         elif method == 'xwd':
-            cmd = 'xwd -display :%d -root ' % self.display
-            cmd += '| convert - -thumbnail %dx%d ' % (width, height)
-            cmd += '-depth %d -quality %d %s:-' % (depth, quality, compression)
+            capture_cmd = [
+                'xwd', '-display', ':%d' % self.display, '-root'
+            ]
         elif method == 'import':
-            cmd = 'import -display :%d -w root ' % self.display
-            cmd += '-depth %d -quality %d %s:-' % (depth, quality, compression)
-        return cmd
+            capture_cmd = [
+                'import', '-display', ':%d.0' % self.display,
+                '-w', 'root', '-thumbnail', '%dx%d' % (width, height),
+                '-depth', str(depth), '-quality', str(quality),
+                '%s:-' % compression
+            ]
+        return (capture_cmd, convert_cmd)
     
     # キャプチャを開始させるメソッド
     def init(self):

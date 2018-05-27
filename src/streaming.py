@@ -42,8 +42,8 @@ class FrameStreamer():
         if self.a % 2 == 0:
             self.thread_mgr.optimize()
             print(self.thread_mgr.check_thread_num())
-            print(self.thread_mgr.check_queue_size())
         self.a += 1
+        print(self.thread_mgr.check_queue_size())
         
         # フレームを取得してSAGE2サーバへ送信
         frame_num, frame = self.thread_mgr.pop_frame()

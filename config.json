@@ -2,16 +2,15 @@
   "server_ip": "tiled1",
   "server_port": 9292,
   "display": 1,
-  "width": 4000,
-  "height": 2800,
+  "screen": 0,
+  "width": 1366,
+  "height": 768,
   "depth": 24,
   "capture_method": "ffmpeg",
-  "compression": "jpg",
+  "compression": "png",
   "quality": 75,
-  "queue_size": 16,
+  "queue_size": 8,
   "min_capturer_num": 2,
-  "max_capturer_num": 32,
-  "vnc_reset": "True",
-  "vnc_path": "/opt/TurboVNC/bin/vncserver"
+  "max_capturer_num": 16,
 }
 
