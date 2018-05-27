@@ -19,6 +19,7 @@ def main():
     thread_mgr = ThreadManager(min_threads=conf['min_capturer_num'],
                                max_threads=conf['max_capturer_num'],
                                queue_size=conf['queue_size'],
+                               queue_num=conf['queue_num'],
                                method=conf['capture_method'],
                                display=conf['display'],
                                width=conf['width'],

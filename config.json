@@ -6,11 +6,12 @@
   "height": 768,
   "depth": 24,
   "capture_method": "ffmpeg",
-  "compression": "jpeg",
-  "quality": 10,
-  "queue_size": 8,
-  "min_capturer_num": 2,
-  "max_capturer_num": 32,
+  "compression": "png",
+  "quality": 75,
+  "queue_size": 16,
+  "queue_num": 32,
+  "min_capturer_num": 128,
+  "max_capturer_num": 128,
   "optimize_term": 3,
   "vnc_path": "/opt/TurboVNC/bin/vncserver"
 }
