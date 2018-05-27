@@ -19,15 +19,17 @@ class FrameCapturer(Thread):
     
     # フレームを取得するメソッド
     def get_frame(self):
-        # フレームを取得 (失敗時はNoneを返す)
+        # キャプチャを実行 (失敗時はNoneを返す)
         try:
-            # キャプチャを実行
             raw_frame = run(self.capture_cmd, stdout=PIPE).stdout
+        except:
+            return None
+        
+        # フレーム番号を取得
+        frame_num = self.counter.get_next_num()
             
-            # フレーム番号を取得
-            frame_num = self.counter.get_next_num()
-            
-            # フレームを圧縮
+        # フレームを圧縮 (失敗時はNoneを返す)
+        try:
             converted_frame = run(self.convert_cmd, input=raw_frame, stdout=PIPE).stdout
         except:
             return None

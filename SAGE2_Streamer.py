@@ -41,7 +41,8 @@ def main():
                              thread_mgr=thread_mgr,
                              width=conf['width'],
                              height=conf['height'],
-                             compression=conf['compression'])   
+                             compression=conf['compression'],
+                             term=conf['optimize_term'])   
     
     # ストリーミングを開始
     ws_io.open(streamer.on_open)

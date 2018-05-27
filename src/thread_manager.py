@@ -44,8 +44,8 @@ class ThreadManager:
         if method == 'ffmpeg':
             capture_cmd = [
                 'ffmpeg', '-loglevel', 'quiet', '-f', 'x11grab',
-                '-video_size', '%dx%d' % (width, height),
-                '-i', ':%d.0+0,0' % self.display, '-vcodec', 'rawvideo',
+                '-ss', '1', '-video_size', '%dx%d' % (width, height),
+                '-i', ':%d+0,0' % self.display, '-vcodec', 'rawvideo',
                 '-f', 'image2pipe', '-vframes', '1', '-vcodec', 'png', 'pipe:-'
             ]
         elif method == 'xwd':
@@ -54,7 +54,7 @@ class ThreadManager:
             ]
         elif method == 'import':
             capture_cmd = [
-                'import', '-display', ':%d.0' % self.display,
+                'import', '-display', ':%d' % self.display,
                 '-w', 'root', '-thumbnail', '%dx%d' % (width, height),
                 '-depth', str(depth), '-quality', str(quality),
                 '%s:-' % compression
@@ -95,10 +95,10 @@ class ThreadManager:
         queue_diff = current_queue_size - self.pre_queue_size
         self.pre_queue_size = current_queue_size
         
-        # 1以上減ならスレッド追加、2以上増ならスレッド除去
-        if queue_diff<=-1 or self.queue.empty():
+        # 2以上減ならスレッド追加、1以上増ならスレッド除去
+        if queue_diff<=-2 or self.queue.empty():
             self.increase_thread()
-        elif queue_diff>=2 and current_queue_size>self.queue_length/2:
+        elif queue_diff>=1:
             self.decrease_thread()
     
     # 全スレッドを終了させるメソッド

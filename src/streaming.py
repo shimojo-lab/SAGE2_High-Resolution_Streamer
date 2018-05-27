@@ -6,7 +6,7 @@ from .utils import normal_output, status_output
 ## フレームをストリーミング配信するクラス
 class FrameStreamer():
     # コンストラクタ
-    def __init__(self, ws_io, thread_mgr, width, height, compression):
+    def __init__(self, ws_io, thread_mgr, width, height, compression, term):
         # パラメータを設定
         self.ws_io = ws_io                       # WebSocket入出力モジュール
         self.thread_mgr = thread_mgr             # スレッド管理モジュール
@@ -16,6 +16,7 @@ class FrameStreamer():
         self.width, self.height = width, height  # フレームのサイズ
         self.compression = compression           # フレームの圧縮形式
         self.encoding = 'base64'                 # フレームのエンコード形式
+        self.optimize_term = term                # スレッド数の調整周期
     
     # ストリーミングの開始を通知するメソッド
     def init_streaming(self, data):
@@ -38,13 +39,6 @@ class FrameStreamer():
     
     # 次番のフレームを送信するメソッド
     def send_next_frame(self, data):
-        # キャプチャ用スレッド数を調整
-        if self.a % 2 == 0:
-            self.thread_mgr.optimize()
-            print(self.thread_mgr.check_thread_num())
-        self.a += 1
-        print(self.thread_mgr.check_queue_size())
-        
         # フレームを取得してSAGE2サーバへ送信
         frame_num, frame = self.thread_mgr.pop_frame()
         self.ws_io.emit('updateMediaStreamFrame', {
@@ -56,6 +50,13 @@ class FrameStreamer():
                 'frame_number': frame_num
             }
         })
+        
+        # 一定周期でスレッド数を調整
+        if frame_num % self.optimize_term == 0:
+            self.thread_mgr.optimize()
+            """  スレッド数とキュー内フレーム数を表示 (デバッグ用)"""
+            print(self.thread_mgr.check_thread_num())
+            print(self.thread_mgr.check_queue_size())
     
     # ストリーミングを停止するメソッド
     def stop_streaming(self, data):
@@ -67,7 +68,6 @@ class FrameStreamer():
     
     # ソケットの準備が完了した時のコールバック
     def on_open(self):
-        self.a = 0
         # ストリーミング開始時のイベントハンドラを作成
         self.ws_io.set_recv_callback('initialize', self.init_streaming)
         
