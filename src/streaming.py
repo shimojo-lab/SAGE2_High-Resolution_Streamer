@@ -54,9 +54,9 @@ class FrameStreamer():
         # 一定周期でスレッド数を調整
         if frame_num % self.optimize_term == 0:
             self.thread_mgr.optimize()
-            """  スレッド数とキュー内フレーム数を表示 (デバッグ用)"""
+            """  スレッド数とキュー内フレーム数を表示 (デバッグ用)
             print(self.thread_mgr.check_thread_num())
-            print(self.thread_mgr.check_queue_size())
+            print(self.thread_mgr.check_queue_size())"""
     
     # ストリーミングを停止するメソッド
     def stop_streaming(self, data):
