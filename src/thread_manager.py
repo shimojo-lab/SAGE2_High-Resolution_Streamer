@@ -19,6 +19,7 @@ class ThreadManager:
         self.framerate = framerate                     # 録画のフレームレート
         self.next_frame_num = 0                        # 次番のフレーム番号
         self.reserved_frames = {"num": [], "src": []}  # 保留したフレームのリスト
+        self.pre_frame = None                          # 前回送信したフレーム
         
         # フレームキューを用意
         self.raw_frame_queue = Queue(raw_queue_size)            # 生フレームキュー
@@ -106,12 +107,19 @@ class ThreadManager:
                     self.reserved_frames['src'].append(frame)
         return frame_set
     
-    # フレームを取得するメソッド
-    def get_frame(self, fps):
+    # 送信するフレームを取得するメソッド
+    def get_new_frame(self, fps):
         # 送信側のフレームレートに応じてフレームを読み飛ばし
         fps = self.framerate if self.framerate<=fps else fps
         skip_frame_num = int(self.framerate/fps)
         for i in range(skip_frame_num):
             frame_num, frame = self.get_next_frame()
-        return (frame_num, frame)
+        
+        # 前回送信したフレームと変化がないならやり直し
+        while True:
+            if frame != self.pre_frame:
+                self.pre_frame = frame
+                return (frame_num, frame)
+            else:
+                frame_num, frame = self.get_next_frame()
 

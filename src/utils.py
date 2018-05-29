@@ -8,11 +8,6 @@ def normal_output(sentence):
     msg = '%s %s' % (PROMPT, sentence)
     print(msg)
 
-# コンソールに改行なしメッセージを表示する関数
-def nonbreak_output(sentence):
-    msg = '%s %s.....' % (PROMPT, sentence)
-    print(msg, end='')
-
 # コンソールにOKを表示する関数
 def ok_output(sentence):
     msg = '%s \033[32m[OK]\033[0m %s' % (PROMPT, sentence)

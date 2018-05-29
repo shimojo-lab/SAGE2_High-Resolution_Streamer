@@ -12,7 +12,7 @@ class FrameCapturer(Thread):
         # パラメータを設定
         super(FrameCapturer, self).__init__()
         self.raw_frame_queue = raw_frame_queue  # 生フレームキュー
-        self.frame_num = 0                      # フレーム番号
+        self.frame_num = 0                      # 現在のフレーム番号
         self.active = True                      # スレッドの終了フラグ
         
         # フレーム録画を開始
@@ -33,7 +33,6 @@ class FrameCapturer(Thread):
         try:
             pipe = Popen(record_cmd, stdout=PIPE)
         except:
-            status_output(False)
             error_output('Could not start capturing frame')
             exit(1)
         return pipe
