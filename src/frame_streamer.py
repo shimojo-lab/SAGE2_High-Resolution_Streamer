@@ -1,12 +1,13 @@
 # *-* encoding: utf-8 *-*
-## streamer.py (フレーム送信モジュール)
+## frame_streamer.py (フレーム送信モジュール)
 
+from time import time
 from .utils import normal_output, status_output
 
 ## フレームをストリーミング配信するクラス
 class FrameStreamer():
     # コンストラクタ
-    def __init__(self, ws_io, thread_mgr, width, height, comp):
+    def __init__(self, ws_io, thread_mgr, width, height, comp, framerate):
         # パラメータを設定
         self.ws_io = ws_io                       # WebSocket入出力モジュール
         self.thread_mgr = thread_mgr             # スレッド管理モジュール
@@ -16,14 +17,23 @@ class FrameStreamer():
         self.width, self.height = width, height  # フレームのサイズ
         self.comp = comp                         # フレームの圧縮形式
         self.encoding = 'base64'                 # フレームのエンコード形式
+        self.fps = framerate                     # フレームレート
+        self.pre_update_time = time()            # 前回のフレーム送信時刻
+    
+    # 送信側での瞬間のフレームレートを計測するメソッド
+    def measure_fps(self):
+        post_update_time = time()
+        fps = 1.0 / (post_update_time-self.pre_update_time)
+        self.pre_update_time = post_update_time
+        return fps
     
     # ストリーミングの開始を通知するメソッド
     def init_streaming(self, data):
         self.app_id = data['UID'] + '|0' 
         self.ws_io.emit('requestToStartMediaStream', {})
         
-        # SAGE2サーバにフレームの情報をを通知
-        frame = self.thread_mgr.pop_next_frame()[1]
+        # SAGE2サーバにフレームの情報を通知
+        frame = self.thread_mgr.pop_next_frame(self.fps)[1]
         self.ws_io.emit('startNewMediaStream', {
             'id': self.app_id,
             'title': self.title,
@@ -34,12 +44,15 @@ class FrameStreamer():
             'type': 'image/%s' % self.comp,
             'encoding': self.encoding
         })
+        
+        # フレームレートを計測
         normal_output('Start frame streaming')
+        self.fps = self.measure_fps()
     
     # 次番のフレームを送信するメソッド
     def send_next_frame(self, data):
         # フレームを取得してSAGE2サーバへ送信
-        frame_num, frame = self.thread_mgr.pop_next_frame()
+        frame_num, frame = self.thread_mgr.pop_next_frame(self.fps)
         self.ws_io.emit('updateMediaStreamFrame', {
             'id': self.app_id,
             'state': {
@@ -49,6 +62,10 @@ class FrameStreamer():
                 'frame_number': frame_num
             }
         })
+        print(frame_num)
+        
+        # フレームレートを計測
+        self.fps = self.measure_fps()
         
     # ストリーミングを停止するメソッド
     def stop_streaming(self, data):

@@ -3,8 +3,7 @@
 
 from threading import Thread
 import numpy as np
-from PIL import Image
-from io import BytesIO
+import cv2
 from base64 import b64encode
 
 # 別スレッドでフレーム圧縮を行うクラス
@@ -16,9 +15,23 @@ class FrameCompresser(Thread):
         self.raw_frame_queue = raw_frame_queue    # 生フレームキュー
         self.comp_frame_queue = comp_frame_queue  # 圧縮フレームキュー
         self.width, self.height = width, height   # フレームサイズ
-        self.comp = comp                          # フレームの圧縮形式
-        self.quality = quality                    # フレームの圧縮品質
         self.active = True                        # スレッドの終了フラグ
+        
+        # 圧縮パラメータを設定
+        self.encode, self.comp_param = self.define_comp_param(comp, quality)
+    
+    # 圧縮パラメータを設定するメソッド
+    def define_comp_param(self, comp, quality):
+        if comp in ('jpeg', 'jpg', 'JPEG', 'JPG'):
+            encode = '.jpg'
+            comp_param = [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+        elif comp in ('png', 'PNG'):
+            encode = '.png'
+            comp_param = [int(cv2.IMWRITE_PNG_COMPRESSION), quality]
+        else:
+            print('Error')
+            exit(1)
+        return encode, comp_param
     
     # 生フレームをnumpy配列として取得するメソッド
     def get_frame_as_np(self):        
@@ -31,18 +44,12 @@ class FrameCompresser(Thread):
     
     # フレームを取得するメソッド
     def compress_frame(self, np_frame_set):
-        # PILに画像を読み込み
-        frame_num = np_frame_set[0]
-        pil_frame = Image.fromarray(np_frame_set[1])
-        
         # フレームを圧縮
-        comp_frame_buf = BytesIO()
-        pil_frame.save(comp_frame_buf, format=self.comp, quality=self.quality, optimize=True)
-        comp_frame = comp_frame_buf.getvalue()
+        frame_num = np_frame_set[0]
+        result, comp_frame = cv2.imencode(self.encode, np_frame_set[1], self.comp_param)
         
         # base64に変換してキューへ
-        str_frame = b64encode(comp_frame).decode('utf-8')
-        print(frame_num)
+        str_frame = b64encode(comp_frame).decode('utf-8') if result else None
         return (frame_num, str_frame)
     
     # スレッドを終了するメソッド

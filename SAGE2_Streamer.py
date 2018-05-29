@@ -4,7 +4,7 @@
 import json
 from os import path
 from src.utils import nonbreak_output
-from src.streamer import FrameStreamer
+from src.frame_streamer import FrameStreamer
 from src.thread_manager import ThreadManager
 from src.websocket_io import WebSocketIO
 
@@ -22,6 +22,8 @@ def main():
                                display=conf['display'],
                                width=conf['width'],
                                height=conf['height'],
+                               depth=conf['depth'],
+                               framerate=conf['record_framerate'],
                                comp=conf['compression'],
                                quality=conf['quality'])
     thread_mgr.init()
@@ -39,7 +41,8 @@ def main():
                              thread_mgr=thread_mgr,
                              width=conf['width'],
                              height=conf['height'],
-                             comp=conf['compression'])
+                             comp=conf['compression'],
+                             framerate=conf['record_framerate'])
     
     # ストリーミングを開始
     ws_io.open(streamer.on_open)

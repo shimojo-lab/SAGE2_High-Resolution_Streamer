@@ -8,7 +8,7 @@ from .utils import status_output, error_output
 # 別スレッドでフレームキャプチャを行うクラス
 class FrameCapturer(Thread):
     # コンストラクタ
-    def __init__(self, raw_frame_queue, display, width, height):
+    def __init__(self, raw_frame_queue, display, width, height, depth, framerate):
         # パラメータを設定
         super(FrameCapturer, self).__init__()
         self.raw_frame_queue = raw_frame_queue  # 生フレームキュー
@@ -16,21 +16,21 @@ class FrameCapturer(Thread):
         self.active = True                      # スレッドの終了フラグ
         
         # フレーム録画を開始
-        self.pipe = self.init_recording(display, width, height)  # フレーム取得用パイプ
-        self.frame_size = width * height * 3                     # フレームのデータサイズ
+        self.pipe = self.init_recording(display, width, height, depth, framerate)
+        self.frame_size = width * height * 3
     
     # フレーム録画を開始するメソッド
-    def init_recording(self, display, width, height):
+    def init_recording(self, display, width, height, depth, framerate):
         # 録画用のコマンドを作成
         record_cmd = [
             'ffmpeg', '-loglevel', 'quiet',
-            '-f', 'x11grab', '-ss', '0', '-an', '-framerate', '10',
+            '-f', 'x11grab', '-ss', '0', '-an', '-framerate', str(framerate),
             '-video_size', '%dx%d' % (width, height), '-vcodec', 'rawvideo',
-            '-i', ':%d+0,0' % display, '-pix_fmt', 'bgr24',
+            '-i', ':%d+0,0' % display, '-pix_fmt', 'bgr%d' % depth,
             '-f', 'image2pipe', '-vcodec', 'rawvideo', '-'
         ]
         
-        # 録画を開始
+        # バックグラウンドで録画を開始
         try:
             pipe = Popen(record_cmd, stdout=PIPE, stderr=PIPE)
         except:
