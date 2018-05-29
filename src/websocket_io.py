@@ -4,7 +4,7 @@
 from tornado import websocket, ioloop
 import json
 from threading import Timer
-from .utils import normal_output, status_output, error_output, warning_output
+from .utils import normal_output, ok_output, error_output, warning_output
 
 # WebSocketの読み書きを行うクラス
 class WebSocketIO():
@@ -47,8 +47,7 @@ class WebSocketIO():
     # ソケットを開いた時のコールバック
     def on_open(self, socket):
         # 開いたソケットを取得
-        status_output(True)
-        normal_output('Connected to %s' % self.addr)
+        ok_output('Connected to %s' % self.addr)
         self.socket = socket.result()
         
         # コールバックを実行

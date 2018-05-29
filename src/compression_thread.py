@@ -39,7 +39,10 @@ class FrameCompresser(Thread):
         frame_num, raw_frame = self.raw_frame_queue.get()
         
         # numpy配列に変換
-        np_frame = np.fromstring(raw_frame, dtype=np.uint8).reshape(self.height, self.width, 3)
+        try:
+            np_frame = np.fromstring(raw_frame, dtype=np.uint8).reshape(self.height, self.width, 3)
+        except:
+            exit(1)
         return (frame_num, np_frame)
     
     # フレームを取得するメソッド
@@ -48,7 +51,7 @@ class FrameCompresser(Thread):
         frame_num = np_frame_set[0]
         result, comp_frame = cv2.imencode(self.encode, np_frame_set[1], self.comp_param)
         
-        # base64に変換してキューへ
+        # base64に変換してキューへ (失敗したらNone)
         str_frame = b64encode(comp_frame).decode('utf-8') if result else None
         return (frame_num, str_frame)
     

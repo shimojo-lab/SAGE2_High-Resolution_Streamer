@@ -1,30 +1,32 @@
 # *-* encoding: utf-8 *-*
 ## thread_manager.py (スレッド管理モジュール)
 
-from queue import PriorityQueue
+from queue import Queue, PriorityQueue
 from time import sleep
-from .utils import normal_output, status_output, error_output
+from threading import active_count
+from .utils import normal_output, ok_output, error_output
 from .capturing_thread import FrameCapturer
 from .compression_thread import FrameCompresser
 
 ## キャプチャ用スレッドを管理するクラス
 class ThreadManager:
     # コンストラクタ
-    def __init__(self, comp_thread_num, raw_queue_size, comp_queue_size, display, width, height, depth, framerate, comp, quality):
+    def __init__(self, comp_thread_num, raw_queue_size, comp_queue_size, loglevel, display, width, height, depth, framerate, comp, quality):
         # パラメータを設定
-        self.comp = comp                              # フレームの圧縮形式
-        self.quality = quality                        # フレームの圧縮品質
-        self.display = display                        # ディスプレイ番号
-        self.framerate = framerate                    # 録画のフレームレート
-        self.next_frame_num = 0                       # 次番のフレーム番号
-        self.reserved_frame = {"num": [], "src": []}  # 保留したフレームのリスト
+        self.comp = comp                               # フレームの圧縮形式
+        self.quality = quality                         # フレームの圧縮品質
+        self.display = display                         # ディスプレイ番号
+        self.framerate = framerate                     # 録画のフレームレート
+        self.next_frame_num = 0                        # 次番のフレーム番号
+        self.reserved_frames = {"num": [], "src": []}  # 保留したフレームのリスト
         
         # フレームキューを用意
-        self.raw_frame_queue = PriorityQueue(raw_queue_size)    # 生フレームキュー
+        self.raw_frame_queue = Queue(raw_queue_size)            # 生フレームキュー
         self.comp_frame_queue = PriorityQueue(comp_queue_size)  # 圧縮フレームキュー
         
         # フレームキャプチャ用スレッドを初期化
         self.capturer = FrameCapturer(raw_frame_queue=self.raw_frame_queue,
+                                      loglevel=loglevel,
                                       display=display,
                                       width=width,
                                       height=height,
@@ -52,8 +54,7 @@ class ThreadManager:
         # フレームキューが充填されるまで待機
         while not self.comp_frame_queue.full():
             sleep(1)
-        status_output(True)
-        normal_output('Captured from Display :%d' % self.display)
+        ok_output('Captured from Display :%d' % self.display)
     
     # 全スレッドを終了させるメソッド
     def terminate_all(self):
@@ -62,43 +63,55 @@ class ThreadManager:
         for compresser in self.compressers:
             compresser.terminate()
         
-        # スレッドが終了するまでキューをフラッシュ
-        while active_count() >=3:
-            self.raw_frame_queue.flush()
-            self.comp_frame_queue.flush()
-            sleep(1)
-       
-    # 圧縮フレームキューから次番フレームを取り出すメソッド
-    def pop_next_frame(self, fps):
-        while True:
-            # 送信側のフレームレートに応じてフレームを読み飛ばし
-            fps = self.framerate if self.framerate<=fps else fps
-            skip_frame_num = int(self.framerate/fps) - 1
-            for i in range(skip_frame_num):
-                self.comp_frame_queue.get()
-            self.next_frame_num += skip_frame_num
-            frame_num, frame = self.comp_frame_queue.get()
-            
-            # フレームが取得できていなければやり直し
-            if frame != None:
-                # 取得したフレームが次番なら採用、違ったら保留
-                if frame_num == self.next_frame_num:
-                    self.next_frame_num += 1
-                    return (frame_num, frame)
-                else:
-                    self.reserved_frame['num'].append(frame_num)
-                    self.reserved_frame['src'].append(frame)
-                    
-                    # 保留したフレームの中に次番のフレームがあれば採用
-                    min_frame_num = min(self.reserved_frame['num'])
-                    if min_frame_num == self.next_frame_num:
-                        idx = self.reserved_frame['num'].index(min_frame_num)
-                        frame = self.reserved_frame['src'][idx]
-                        self.reserved_frame['num'].pop(idx)
-                        self.reserved_frame['src'].pop(idx)
-                        self.next_frame_num += 1
-                        return (frame_num, frame)
-            else:
+        # スレッドが終了するまで待機
+        self.raw_frame_queue.get()
+        self.comp_frame_queue.get()
+        self.capturer.join()
+        for compresser in self.compressers:
+            compresser.join()
+        exit(0)
+    
+    # 保留したフレームに次番のフレームが無いか探すメソッド
+    def check_reserved_frames(self):
+        result = None
+        if len(self.reserved_frames['num']) != 0:
+            min_frame_num = min(self.reserved_frames['num'])
+            if min_frame_num == self.next_frame_num:
+                idx = self.reserved_frames['num'].index(min_frame_num)
+                frame = self.reserved_frames['src'][idx]
+                self.reserved_frames['num'].pop(idx)
+                self.reserved_frames['src'].pop(idx)
                 self.next_frame_num += 1
-                continue
+                result = (min_frame_num, frame)
+        return result
+    
+    # 圧縮フレームキューから次番フレームを取り出すメソッド
+    def get_next_frame(self):
+        # 保留したフレームをチェック
+        frame_set = self.check_reserved_frames()
+        
+        # 保留したフレームに無いなら圧縮フレームキューから取得
+        if frame_set == None:
+            while True:
+                frame_num, frame = self.comp_frame_queue.get()
+                if frame == None:
+                    self.next_frame_num += 1
+                    continue
+                elif frame_num == self.next_frame_num:
+                    self.next_frame_num += 1
+                    frame_set = (frame_num, frame)
+                    break
+                else:
+                    self.reserved_frames['num'].append(frame_num)
+                    self.reserved_frames['src'].append(frame)
+        return frame_set
+    
+    # フレームを取得するメソッド
+    def get_frame(self, fps):
+        # 送信側のフレームレートに応じてフレームを読み飛ばし
+        fps = self.framerate if self.framerate<=fps else fps
+        skip_frame_num = int(self.framerate/fps)
+        for i in range(skip_frame_num):
+            frame_num, frame = self.get_next_frame()
+        return (frame_num, frame)
 

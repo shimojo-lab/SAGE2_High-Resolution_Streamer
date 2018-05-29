@@ -13,9 +13,9 @@ def nonbreak_output(sentence):
     msg = '%s %s.....' % (PROMPT, sentence)
     print(msg, end='')
 
-# コンソールに実行ステータスを表示する関数
-def status_output(status):
-    msg = '\033[32m[OK]\033[0m' if status else '\033[31m[Failed]\033[0m'
+# コンソールにOKを表示する関数
+def ok_output(sentence):
+    msg = '%s \033[32m[OK]\033[0m %s' % (PROMPT, sentence)
     print(msg)
 
 # コンソールにErrorを表示する関数
