@@ -8,7 +8,7 @@ quality=$(cat ../config.json | jq .quality)
 ffmpeg -f x11grab \
 -video_size ${width}x${height} \
 -i :${display} \
--f image2 \
--vcodec mjpeg -vframes 1 \
-a.jpg
+-f image2pipe \
+-pix_fmt rgb32 -vcodec rawvideo \
+- 
 

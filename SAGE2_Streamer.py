@@ -4,7 +4,7 @@
 import json
 from os import path
 from src.utils import nonbreak_output
-from src.streaming import FrameStreamer
+from src.streamer import FrameStreamer
 from src.thread_manager import ThreadManager
 from src.websocket_io import WebSocketIO
 
@@ -16,16 +16,13 @@ def main():
     
     # スレッド管理モジュールを初期化
     nonbreak_output('Preparing for screen capture')
-    thread_mgr = ThreadManager(min_threads=conf['min_capturer_num'],
-                               max_threads=conf['max_capturer_num'],
-                               queue_size=conf['queue_size'],
-                               queue_num=conf['queue_num'],
-                               method=conf['capture_method'],
+    thread_mgr = ThreadManager(comp_thread_num=conf['compression_thread'],
+                               raw_queue_size=conf['raw_frame_queue'],
+                               comp_queue_size=conf['compression_frame_queue'],
                                display=conf['display'],
                                width=conf['width'],
                                height=conf['height'],
-                               depth=conf['depth'],
-                               compression=conf['compression'],
+                               comp=conf['compression'],
                                quality=conf['quality'])
     thread_mgr.init()
     
@@ -42,8 +39,7 @@ def main():
                              thread_mgr=thread_mgr,
                              width=conf['width'],
                              height=conf['height'],
-                             compression=conf['compression'],
-                             term=conf['optimize_term'])   
+                             comp=conf['compression'])
     
     # ストリーミングを開始
     ws_io.open(streamer.on_open)
