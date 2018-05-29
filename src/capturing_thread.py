@@ -24,8 +24,8 @@ class FrameCapturer(Thread):
         # 録画用のコマンドを作成
         record_cmd = [
             'ffmpeg', '-loglevel', loglevel,
-            '-f', 'x11grab', '-vcodec', 'rawvideo', '-s', '%dx%d' % (width, height),
-            '-r', str(framerate), '-an', '-i', ':%d' % display,
+            '-f', 'x11grab', '-vcodec', 'rawvideo', '-s', '%dx%d' % (width, height), '-an',
+            '-i', ':%d' % display, '-r', str(framerate),
             '-f', 'image2pipe', '-vcodec', 'rawvideo', '-pix_fmt', 'bgr%d' % depth, '-'
         ]
         
