@@ -7,7 +7,7 @@ from .utils import normal_output
 ## フレームをストリーミング配信するクラス
 class FrameStreamer():
     # コンストラクタ
-    def __init__(self, ws_io, thread_mgr, width, height, comp, framerate):
+    def __init__(self, ws_io, thread_mgr, width, height, comp):
         # パラメータを設定
         self.ws_io = ws_io                       # WebSocket入出力モジュール
         self.thread_mgr = thread_mgr             # スレッド管理モジュール
@@ -17,7 +17,7 @@ class FrameStreamer():
         self.width, self.height = width, height  # フレームのサイズ
         self.comp = comp                         # フレームの圧縮形式
         self.encoding = 'base64'                 # フレームのエンコード形式
-        self.fps = framerate                     # フレームレート
+        self.fps = None                          # フレームレート
         self.pre_update_time = time()            # 前回のフレーム送信時刻
     
     # 送信側での瞬間のフレームレートを計測するメソッド
@@ -33,7 +33,7 @@ class FrameStreamer():
         self.ws_io.emit('requestToStartMediaStream', {})
         
         # SAGE2サーバにフレームの情報を通知
-        frame = self.thread_mgr.get_new_frame(self.fps)[1]
+        frame = self.thread_mgr.get_next_frame()[1]
         self.ws_io.emit('startNewMediaStream', {
             'id': self.app_id,
             'title': self.title,
@@ -46,8 +46,8 @@ class FrameStreamer():
         })
         
         # フレームレートを計測
-        normal_output('Start frame streaming')
         self.fps = self.measure_fps()
+        normal_output('Start frame streaming')
     
     # 次番のフレームを送信するメソッド
     def send_next_frame(self, data):

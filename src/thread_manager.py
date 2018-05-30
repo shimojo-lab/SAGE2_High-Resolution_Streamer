@@ -6,38 +6,50 @@ from time import sleep
 from threading import active_count
 from .utils import normal_output, ok_output, error_output
 from .capturing_thread import FrameCapturer
+from .concatenation_thread import FrameConcatenater
 from .compression_thread import FrameCompresser
 
 ## キャプチャ用スレッドを管理するクラス
 class ThreadManager:
     # コンストラクタ
-    def __init__(self, comp_thread_num, raw_queue_size, comp_queue_size, loglevel, display, width, height, depth, framerate, comp, quality):
+    def __init__(self, capture_thread_num, comp_thread_num, split_queue_size, np_queue_size, comp_queue_size, loglevel, display, width, height, depth, framerate, comp, quality):
         # パラメータを設定
         self.comp = comp                               # フレームの圧縮形式
         self.quality = quality                         # フレームの圧縮品質
         self.display = display                         # ディスプレイ番号
         self.framerate = framerate                     # 録画のフレームレート
         self.next_frame_num = 0                        # 次番のフレーム番号
-        self.reserved_frames = {"num": [], "src": []}  # 保留したフレームのリスト
+        self.reserved_frames = {'num': [], 'src': []}  # 保留したフレームのリスト
         self.pre_frame = None                          # 前回送信したフレーム
         
-        # フレームキューを用意
-        self.raw_frame_queue = Queue(raw_queue_size)            # 生フレームキュー
-        self.comp_frame_queue = PriorityQueue(comp_queue_size)  # 圧縮フレームキュー
+        # 各フレームキューを用意
+        self.split_frame_queues = [PriorityQueue(split_queue_size) for i in range(capture_thread_num)]
+        self.np_frame_queue = PriorityQueue(np_queue_size)
+        self.comp_frame_queue = PriorityQueue(comp_queue_size)
         
         # フレームキャプチャ用スレッドを初期化
-        self.capturer = FrameCapturer(raw_frame_queue=self.raw_frame_queue,
-                                      loglevel=loglevel,
-                                      display=display,
-                                      width=width,
-                                      height=height,
-                                      depth=depth,
-                                      framerate=self.framerate)
+        self.capturers = []
+        for i in range(capture_thread_num):
+            capturer = FrameCapturer(split_frame_queue=self.split_frame_queues[i],
+                                     loglevel=loglevel,
+                                     display=display,
+                                     region=i,
+                                     width=width,
+                                     height=int(height/capture_thread_num),
+                                     depth=depth,
+                                     framerate=self.framerate)
+            self.capturers.append(capturer)
         
-        # フレーム圧縮スレッドを初期化
+        # フレーム結合用スレッドを初期化
+        self.concatenater = FrameConcatenater(split_frame_queues=self.split_frame_queues,
+                                              np_frame_queue=self.np_frame_queue,
+                                              width=width,
+                                              height=height)
+        
+        # フレーム圧縮用スレッドを初期化
         self.compressers = []
         for i in range(comp_thread_num):
-            compresser = FrameCompresser(raw_frame_queue=self.raw_frame_queue,
+            compresser = FrameCompresser(np_frame_queue=self.np_frame_queue,
                                          comp_frame_queue=self.comp_frame_queue,
                                          width=width,
                                          height=height,
@@ -47,8 +59,10 @@ class ThreadManager:
     
     # キャプチャを開始させるメソッド
     def init(self):
-        # スレッドを起動
-        self.capturer.start()
+        # 各スレッドを起動
+        for capturer in self.capturers:
+            capturer.start()
+        self.concatenater.start()
         for compresser in self.compressers:
             compresser.start()
         
@@ -59,18 +73,18 @@ class ThreadManager:
     
     # 全スレッドを終了させるメソッド
     def terminate_all(self):
-        # 全スレッドの終了フラグを立てる
-        self.capturer.terminate()
+        for i, capturer in enumerate(self.capturers):
+            capturer.terminate()
+            capturer.split_frame_queues[i].get()
+            capturer.join()
+        
+        self.concatenater.terminate()
+        self.concatenater.join()
+        
         for compresser in self.compressers:
             compresser.terminate()
-        
-        # スレッドが終了するまで待機
-        self.raw_frame_queue.get()
-        self.comp_frame_queue.get()
-        self.capturer.join()
-        for compresser in self.compressers:
+            self.comp_frame_queue.get()
             compresser.join()
-        exit(0)
     
     # 保留したフレームに次番のフレームが無いか探すメソッド
     def check_reserved_frames(self):
@@ -114,12 +128,14 @@ class ThreadManager:
         skip_frame_num = int(self.framerate/fps)
         for i in range(skip_frame_num):
             frame_num, frame = self.get_next_frame()
+        print(self.split_frame_queues[0].qsize())
+        return (frame_num, frame)
         
-        # 前回送信したフレームと変化がないならやり直し
-        while True:
+        # 前回送信したフレームと変化がないなら取得し直し
+        """while True:
             if frame != self.pre_frame:
                 self.pre_frame = frame
                 return (frame_num, frame)
             else:
-                frame_num, frame = self.get_next_frame()
+                frame_num, frame = self.get_next_frame()"""
 

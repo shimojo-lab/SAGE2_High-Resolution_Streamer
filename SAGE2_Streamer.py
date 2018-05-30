@@ -16,8 +16,10 @@ def main():
     
     # スレッド管理モジュールを初期化
     normal_output('Preparing for screen capture...')
-    thread_mgr = ThreadManager(comp_thread_num=conf['compression_thread'],
-                               raw_queue_size=conf['raw_frame_queue'],
+    thread_mgr = ThreadManager(capture_thread_num=conf['capturing_thread'],
+                               comp_thread_num=conf['compression_thread'],
+                               split_queue_size=conf['split_frame_queue'],
+                               np_queue_size=conf['numpy_frame_queue'],
                                comp_queue_size=conf['compression_frame_queue'],
                                loglevel=conf['ffmpeg_loglevel'],
                                display=conf['display'],
@@ -30,7 +32,7 @@ def main():
     thread_mgr.init()
     
     # WebSocket入出力モジュールを初期化
-    normal_output('Preparing for server connection')
+    normal_output('Preparing for server connection...')
     ws_io = WebSocketIO(ip=conf['server_ip'],
                         port=conf['server_port'],
                         ws_tag='#WSIO#addListener',
@@ -42,8 +44,7 @@ def main():
                              thread_mgr=thread_mgr,
                              width=conf['width'],
                              height=conf['height'],
-                             comp=conf['compression'],
-                             framerate=conf['record_framerate'])
+                             comp=conf['compression'])
     
     # ストリーミングを開始
     ws_io.open(streamer.on_open)

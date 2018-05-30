@@ -1,18 +1,18 @@
 # *-* encoding: utf-8 *-*
-## compression_thread.py (フレーム圧縮スレッド)
+## compression_thread.py (フレーム圧縮用スレッド)
 
 from threading import Thread
-import numpy as np
 import cv2
 from base64 import b64encode
+from .utils import error_output
 
 # 別スレッドでフレーム圧縮を行うクラス
 class FrameCompresser(Thread):
     # コンストラクタ
-    def __init__(self, raw_frame_queue, comp_frame_queue, width, height, comp, quality):
+    def __init__(self, np_frame_queue, comp_frame_queue, width, height, comp, quality):
         # パラメータを設定
         super(FrameCompresser, self).__init__()
-        self.raw_frame_queue = raw_frame_queue    # 生フレームキュー
+        self.np_frame_queue = np_frame_queue      # 結合フレームキュー
         self.comp_frame_queue = comp_frame_queue  # 圧縮フレームキュー
         self.width, self.height = width, height   # フレームサイズ
         self.active = True                        # スレッドの終了フラグ
@@ -29,31 +29,18 @@ class FrameCompresser(Thread):
             encode = '.png'
             comp_param = [int(cv2.IMWRITE_PNG_COMPRESSION), quality]
         else:
-            print('Error')
+            error_output('Frame compression failed')
             exit(1)
         return encode, comp_param
     
-    # 生フレームをnumpy配列として取得するメソッド
-    def get_frame_as_np(self):        
-        # 生フレームを取得
-        frame_num, raw_frame = self.raw_frame_queue.get()
-        
-        # numpy配列に変換
-        try:
-            np_frame = np.fromstring(raw_frame, dtype=np.uint8).reshape(self.height, self.width, 3)
-        except:
-            exit(1)
-        return (frame_num, np_frame)
-    
-    # フレームを取得するメソッド
-    def compress_frame(self, np_frame_set):
+    # 結合フレームを圧縮するメソッド
+    def compress_frame(self, np_frame):
         # フレームを圧縮
-        frame_num = np_frame_set[0]
-        result, comp_frame = cv2.imencode(self.encode, np_frame_set[1], self.comp_param)
+        result, comp_frame = cv2.imencode(self.encode, np_frame, self.comp_param)
         
         # base64に変換してキューへ (失敗したらNone)
         str_frame = b64encode(comp_frame).decode('utf-8') if result else None
-        return (frame_num, str_frame)
+        return str_frame
     
     # スレッドを終了するメソッド
     def terminate(self):
@@ -62,7 +49,7 @@ class FrameCompresser(Thread):
     # フレーム圧縮を繰り返すメソッド
     def run(self):
         while self.active:
-            np_frame_set = self.get_frame_as_np()
-            comp_frame_set = self.compress_frame(np_frame_set)
-            self.comp_frame_queue.put(comp_frame_set)
+            frame_num, np_frame = self.np_frame_queue.get()
+            comp_frame = self.compress_frame(np_frame)
+            self.comp_frame_queue.put((frame_num, comp_frame))
 
