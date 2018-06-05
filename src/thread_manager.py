@@ -6,13 +6,13 @@ from time import sleep
 from threading import active_count
 from .utils import normal_output, ok_output, error_output
 from .capturing_thread import FrameCapturer
-from .concatenation_thread import FrameConcatenater
+from .conversion_thread import FrameConverter
 from .compression_thread import FrameCompresser
 
-## キャプチャ用スレッドを管理するクラス
+## スレッドを管理するクラス
 class ThreadManager:
     # コンストラクタ
-    def __init__(self, capture_thread_num, comp_thread_num, split_queue_size, np_queue_size, comp_queue_size, loglevel, display, width, height, depth, framerate, comp, quality):
+    def __init__(self, comp_thread_num, raw_queue_size, np_queue_size, comp_queue_size, loglevel, display, width, height, depth, framerate, comp, quality):
         # パラメータを設定
         self.comp = comp                               # フレームの圧縮形式
         self.quality = quality                         # フレームの圧縮品質
@@ -23,28 +23,24 @@ class ThreadManager:
         self.pre_frame = None                          # 前回送信したフレーム
         
         # 各フレームキューを用意
-        self.split_frame_queues = [PriorityQueue(split_queue_size) for i in range(capture_thread_num)]
+        self.raw_frame_queue = PriorityQueue(raw_queue_size)
         self.np_frame_queue = PriorityQueue(np_queue_size)
         self.comp_frame_queue = PriorityQueue(comp_queue_size)
         
         # フレームキャプチャ用スレッドを初期化
-        self.capturers = []
-        for i in range(capture_thread_num):
-            capturer = FrameCapturer(split_frame_queue=self.split_frame_queues[i],
-                                     loglevel=loglevel,
-                                     display=display,
-                                     region=i,
-                                     width=width,
-                                     height=int(height/capture_thread_num),
-                                     depth=depth,
-                                     framerate=self.framerate)
-            self.capturers.append(capturer)
+        self.capturer = FrameCapturer(raw_frame_queue=self.raw_frame_queue,
+                                      loglevel=loglevel,
+                                      display=display,
+                                      width=width,
+                                      height=height,
+                                      depth=depth,
+                                      framerate=self.framerate)
         
-        # フレーム結合用スレッドを初期化
-        self.concatenater = FrameConcatenater(split_frame_queues=self.split_frame_queues,
-                                              np_frame_queue=self.np_frame_queue,
-                                              width=width,
-                                              height=height)
+        # フレーム変換用スレッドを初期化
+        self.converter = FrameConverter(raw_frame_queue=self.raw_frame_queue,
+                                        np_frame_queue=self.np_frame_queue,
+                                        width=width,
+                                        height=height)
         
         # フレーム圧縮用スレッドを初期化
         self.compressers = []
@@ -60,9 +56,8 @@ class ThreadManager:
     # キャプチャを開始させるメソッド
     def init(self):
         # 各スレッドを起動
-        for capturer in self.capturers:
-            capturer.start()
-        self.concatenater.start()
+        self.capturer.start()
+        self.converter.start()
         for compresser in self.compressers:
             compresser.start()
         
@@ -73,13 +68,13 @@ class ThreadManager:
     
     # 全スレッドを終了させるメソッド
     def terminate_all(self):
-        for i, capturer in enumerate(self.capturers):
-            capturer.terminate()
-            capturer.split_frame_queues[i].get()
-            capturer.join()
+        self.capturer.terminate()
+        self.raw_frame_queue.get()
+        self.capturer.join()
         
-        self.concatenater.terminate()
-        self.concatenater.join()
+        self.converter.terminate()
+        self.np_frame_queue.get()
+        self.converter.join()
         
         for compresser in self.compressers:
             compresser.terminate()
@@ -128,7 +123,7 @@ class ThreadManager:
         skip_frame_num = int(self.framerate/fps)
         for i in range(skip_frame_num):
             frame_num, frame = self.get_next_frame()
-        print(self.split_frame_queues[0].qsize())
+        print(self.raw_frame_queue.qsize())
         return (frame_num, frame)
         
         # 前回送信したフレームと変化がないなら取得し直し

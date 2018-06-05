@@ -12,7 +12,7 @@ class FrameCompresser(Thread):
     def __init__(self, np_frame_queue, comp_frame_queue, width, height, comp, quality):
         # パラメータを設定
         super(FrameCompresser, self).__init__()
-        self.np_frame_queue = np_frame_queue      # 結合フレームキュー
+        self.np_frame_queue = np_frame_queue      # numpyフレームキュー
         self.comp_frame_queue = comp_frame_queue  # 圧縮フレームキュー
         self.width, self.height = width, height   # フレームサイズ
         self.active = True                        # スレッドの終了フラグ

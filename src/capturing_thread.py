@@ -8,24 +8,24 @@ from .utils import error_output
 # 別スレッドでフレームキャプチャを行うクラス
 class FrameCapturer(Thread):
     # コンストラクタ
-    def __init__(self, split_frame_queue, loglevel, display, region, width, height, depth, framerate):
+    def __init__(self, raw_frame_queue, loglevel, display, width, height, depth, framerate):
         # パラメータを設定
         super(FrameCapturer, self).__init__()
-        self.split_frame_queue = split_frame_queue  # 担当領域用のフレームキュー
-        self.frame_num = 0                          # 付与するフレーム番号
-        self.active = True                          # スレッドの終了フラグ
+        self.raw_frame_queue = raw_frame_queue  # 生フレームキュー
+        self.frame_num = 0                      # 付与するフレーム番号
+        self.active = True                      # スレッドの終了フラグ
         
-        # 担当領域の録画を開始
-        self.pipe = self.init_recording(loglevel, display, region, width, height, depth, framerate)
+        # フレーム録画を開始
+        self.pipe = self.init_recording(loglevel, display, width, height, depth, framerate)
         self.frame_size = width * height * 3
     
     # 録画を開始するメソッド
-    def init_recording(self, loglevel, display, region, width, height, depth, framerate):
+    def init_recording(self, loglevel, display, width, height, depth, framerate):
         # 録画用のコマンドを作成
         record_cmd = [
             'ffmpeg', '-loglevel', loglevel, '-f', 'x11grab',
             '-vcodec', 'rawvideo', '-an', '-s', '%dx%d' % (width, height),
-            '-i', ':%d+0,%d' % (display, region*height), '-r', str(framerate),
+            '-i', ':%d+0,0' % display, '-r', str(framerate),
             '-f', 'image2pipe', '-vcodec', 'rawvideo', '-pix_fmt', 'bgr%d' % depth, '-'
         ]
         
@@ -57,7 +57,7 @@ class FrameCapturer(Thread):
     # フレームキャプチャを繰り返すメソッド
     def run(self):
         while self.active:
-            frame_num, split_frame = self.get_split_frame()
-            if split_frame != None:
-                self.split_frame_queue.put((frame_num, split_frame))
+            frame_num, raw_frame = self.get_split_frame()
+            if raw_frame != None:
+                self.raw_frame_queue.put((frame_num, raw_frame))
 
