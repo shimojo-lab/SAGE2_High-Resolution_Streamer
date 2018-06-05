@@ -4,6 +4,7 @@
 from tornado import websocket, ioloop
 import json
 from threading import Timer
+import numpy as np
 from .utils import normal_output, ok_output, error_output, warning_output
 
 # WebSocketの読み書きを行うクラス
@@ -95,8 +96,8 @@ class WebSocketIO():
         # メッセージをソケットに書き込み (失敗したらやり直し)
         if name in self.remote_listeners:
             alias = self.remote_listeners[name]
-            msg = {'f': alias, 'd': data}
-            self.socket.write_message(json.dumps(msg))
+            msg = json.dumps({'f': alias, 'd': data})
+            self.socket.write_message(msg)
         else:
             if attempts >= 0:
                 timer = Timer(self.interval, self.emit, [name, data, attempts-1])

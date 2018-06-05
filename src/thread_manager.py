@@ -123,7 +123,6 @@ class ThreadManager:
         skip_frame_num = int(self.framerate/fps)
         for i in range(skip_frame_num):
             frame_num, frame = self.get_next_frame()
-        print(self.raw_frame_queue.qsize())
         return (frame_num, frame)
         
         # 前回送信したフレームと変化がないなら取得し直し

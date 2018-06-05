@@ -2,6 +2,7 @@
 ## frame_streamer.py (フレーム送信モジュール)
 
 from time import time
+from base64 import b64decode
 from .utils import normal_output
 
 ## フレームをストリーミング配信するクラス
@@ -59,7 +60,6 @@ class FrameStreamer():
                 'src': frame,
                 'type': 'image/%s' % self.comp,
                 'encoding': self.encoding,
-                'frame_number': frame_num
             }
         })
         
