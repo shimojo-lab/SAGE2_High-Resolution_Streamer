@@ -8,7 +8,7 @@ from .utils import normal_output
 ## フレームをストリーミング配信するクラス
 class FrameStreamer():
     # コンストラクタ
-    def __init__(self, ws_io, thread_mgr, width, height, comp):
+    def __init__(self, ws_io, thread_mgr, width, height, comp, show_fps):
         # パラメータを設定
         self.ws_io = ws_io                       # WebSocket入出力モジュール
         self.thread_mgr = thread_mgr             # スレッド管理モジュール
@@ -18,6 +18,7 @@ class FrameStreamer():
         self.width, self.height = width, height  # フレームのサイズ
         self.comp = comp                         # フレームの圧縮形式
         self.encoding = 'base64'                 # フレームのエンコード形式
+        self.show_fps = show_fps                 # フレームレート計測用のフラグ
         self.fps = None                          # フレームレート
         self.pre_update_time = time()            # 前回のフレーム送信時刻
     
@@ -63,9 +64,10 @@ class FrameStreamer():
             }
         })
         
-        # フレームレートを計測
-        self.fps = self.measure_fps()
-        #print('frame%d: %s[fps]' % (frame_num, self.fps))
+        # フレームレートを計測 (デバッグ用)
+        if self.show_fps == "True":
+            self.fps = self.measure_fps()
+            print('frame%d: %s[fps]' % (frame_num, self.fps))
         
     # ストリーミングを停止するメソッド
     def stop_streaming(self, data):

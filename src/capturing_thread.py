@@ -50,7 +50,11 @@ class FrameCapturer(Thread):
                 self.prev_frame = frame
                 
                 # Numpy配列に変換
-                raw_frame = np.fromstring(frame, dtype=np.uint8).reshape(self.height, self.width, 3)
+                try:
+                    raw_frame = np.fromstring(frame, dtype=np.uint8).reshape(self.height, self.width, 3)
+                except:
+                    error_output('Could not get new frame')
+                    exit(1)
                 return raw_frame
     
     # スレッドを終了するメソッド

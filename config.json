@@ -3,14 +3,15 @@
   "server_port": 9292,
   "ffmpeg_loglevel": "quiet",
   "display": 1,
-  "width": 4000,
+  "width": 7000,
   "height": 3000,
   "depth": 24,
   "record_framerate": 20,
   "compression": "jpg",
   "quality": 90,
   "raw_frame_queue": 8,
-  "compression_thread": 4,
+  "compression_thread": 1,
+  "show_fps": "True",
   "vnc_path": "/opt/TurboVNC/bin/vncserver"
 }
 
