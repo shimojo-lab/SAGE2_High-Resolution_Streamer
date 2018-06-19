@@ -65,7 +65,7 @@ class FrameStreamer():
         
         # フレームレートを計測
         self.fps = self.measure_fps()
-        print(self.fps)
+        #print('%s:%s' % (frame_num, self.fps))
         
     # ストリーミングを停止するメソッド
     def stop_streaming(self, data):

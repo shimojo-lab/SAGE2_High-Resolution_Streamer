@@ -104,20 +104,14 @@ class ThreadManager:
             else:
                 self.reserved_frame_queue.put((frame_num, frame))
     
-    # 送信するフレームを取得するメソッド
+    # 送信用のフレームを取得するメソッド
     def get_new_frame(self, fps):
-        # フレームレートに応じてフレームを読み飛ばし
-        #fps = self.framerate if self.framerate<=fps else fps
-        #skip_frame_num = int(self.framerate/fps)
-        #for i in range(skip_frame_num):
-        frame_num, frame = self.get_next_frame()
-        return (frame_num, frame)
-        
         # 前回送信したフレームと変化がないなら取得し直し
-        """while True:
+        while True:
+            frame_num, frame = self.get_next_frame()
             if frame != self.pre_frame:
                 self.pre_frame = frame
                 return (frame_num, frame)
             else:
-                frame_num, frame = self.get_next_frame()"""
+                frame_num, frame = self.get_next_frame()
 
