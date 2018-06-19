@@ -18,8 +18,6 @@ def main():
     normal_output('Preparing for screen capture...')
     thread_mgr = ThreadManager(comp_thread_num=conf['compression_thread'],
                                raw_queue_size=conf['raw_frame_queue'],
-                               np_queue_size=conf['numpy_frame_queue'],
-                               comp_queue_size=conf['compression_frame_queue'],
                                loglevel=conf['ffmpeg_loglevel'],
                                display=conf['display'],
                                width=conf['width'],

@@ -26,7 +26,7 @@ class FrameStreamer():
         post_update_time = time()
         fps = 1.0 / (post_update_time-self.pre_update_time)
         self.pre_update_time = post_update_time
-        return fps
+        return round(fps, 2)
     
     # ストリーミングの開始を通知するメソッド
     def init_streaming(self, data):
@@ -48,7 +48,7 @@ class FrameStreamer():
         
         # フレームレートを計測
         self.fps = self.measure_fps()
-        normal_output('Start frame streaming')
+        normal_output('Start desktop streaming')
     
     # 次番のフレームを送信するメソッド
     def send_next_frame(self, data):
@@ -65,7 +65,7 @@ class FrameStreamer():
         
         # フレームレートを計測
         self.fps = self.measure_fps()
-        print('%s:%s' % (frame_num, self.fps))
+        #print('frame%d: %s[fps]' % (frame_num, self.fps))
         
     # ストリーミングを停止するメソッド
     def stop_streaming(self, data):

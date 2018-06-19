@@ -9,12 +9,11 @@ from .utils import error_output
 # 別スレッドでフレーム圧縮を行うクラス
 class FrameCompressor(Thread):
     # コンストラクタ
-    def __init__(self, np_frame_queue, comp_frame_queue, width, height, comp, quality):
+    def __init__(self, raw_frame_queue, comp_frame_queue, comp, quality):
         # パラメータを設定
         super(FrameCompressor, self).__init__()
-        self.np_frame_queue = np_frame_queue      # numpyフレームキュー
+        self.raw_frame_queue = raw_frame_queue    # 生フレームキュー
         self.comp_frame_queue = comp_frame_queue  # 圧縮フレームキュー
-        self.width, self.height = width, height   # フレームサイズ
         self.active = True                        # スレッドの終了フラグ
         
         # 圧縮パラメータを設定
@@ -33,10 +32,10 @@ class FrameCompressor(Thread):
             exit(1)
         return encode, comp_param
     
-    # 結合フレームを圧縮するメソッド
-    def compress_frame(self, np_frame):
+    # フレームを圧縮するメソッド
+    def compress_frame(self, raw_frame):
         # フレームを圧縮
-        result, comp_frame = cv2.imencode(self.encode, np_frame, self.comp_param)
+        result, comp_frame = cv2.imencode(self.encode, raw_frame, self.comp_param)
         
         # base64に変換してキューへ (失敗したらNone)
         str_frame = b64encode(comp_frame).decode('utf-8') if result else None
@@ -49,7 +48,7 @@ class FrameCompressor(Thread):
     # フレーム圧縮を繰り返すメソッド
     def run(self):
         while self.active:
-            frame_num, np_frame = self.np_frame_queue.get()
-            comp_frame = self.compress_frame(np_frame)
+            frame_num, raw_frame = self.raw_frame_queue.get()
+            comp_frame = self.compress_frame(raw_frame)
             self.comp_frame_queue.put((frame_num, comp_frame))
 

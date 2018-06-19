@@ -12,4 +12,3 @@ PyScreeze==0.1.14
 PyTweening==1.0.3
 six==1.11.0
 tornado==5.0.2
-xlib==0.21

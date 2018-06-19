@@ -6,12 +6,10 @@
   "width": 4000,
   "height": 3000,
   "depth": 24,
-  "record_framerate": 18,
+  "record_framerate": 20,
   "compression": "jpg",
   "quality": 90,
   "raw_frame_queue": 8,
-  "numpy_frame_queue": 8,
-  "compression_frame_queue": -1,
   "compression_thread": 4,
   "vnc_path": "/opt/TurboVNC/bin/vncserver"
 }
