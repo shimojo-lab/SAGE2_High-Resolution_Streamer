@@ -53,7 +53,7 @@ class FrameStreamer():
     # 次番のフレームを送信するメソッド
     def send_next_frame(self, data):
         # フレームを取得してSAGE2サーバへ送信
-        frame_num, frame = self.thread_mgr.get_new_frame(self.fps)
+        frame_num, frame = self.thread_mgr.get_next_frame()
         self.ws_io.emit('updateMediaStreamFrame', {
             'id': self.app_id,
             'state': {
@@ -65,7 +65,7 @@ class FrameStreamer():
         
         # フレームレートを計測
         self.fps = self.measure_fps()
-        #print('%s:%s' % (frame_num, self.fps))
+        print('%s:%s' % (frame_num, self.fps))
         
     # ストリーミングを停止するメソッド
     def stop_streaming(self, data):

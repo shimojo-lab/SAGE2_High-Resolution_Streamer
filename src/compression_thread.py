@@ -7,11 +7,11 @@ from base64 import b64encode
 from .utils import error_output
 
 # 別スレッドでフレーム圧縮を行うクラス
-class FrameCompresser(Thread):
+class FrameCompressor(Thread):
     # コンストラクタ
     def __init__(self, np_frame_queue, comp_frame_queue, width, height, comp, quality):
         # パラメータを設定
-        super(FrameCompresser, self).__init__()
+        super(FrameCompressor, self).__init__()
         self.np_frame_queue = np_frame_queue      # numpyフレームキュー
         self.comp_frame_queue = comp_frame_queue  # 圧縮フレームキュー
         self.width, self.height = width, height   # フレームサイズ

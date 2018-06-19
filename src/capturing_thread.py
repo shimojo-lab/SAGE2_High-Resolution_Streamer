@@ -14,6 +14,7 @@ class FrameCapturer(Thread):
         self.raw_frame_queue = raw_frame_queue  # 生フレームキュー
         self.frame_num = 0                      # 付与するフレーム番号
         self.active = True                      # スレッドの終了フラグ
+        self.prev_frame = None                  # 前回取得したフレーム
         
         # フレーム録画を開始
         self.pipe = self.init_recording(loglevel, display, width, height, depth, framerate)
@@ -37,19 +38,6 @@ class FrameCapturer(Thread):
             exit(1)
         return pipe
     
-    # フレームを取得するメソッド
-    def get_split_frame(self):
-        # 担当領域のフレームを取得 (失敗したらNone)
-        try:
-            raw_frame = self.pipe.stdout.read(self.frame_size)
-        except:
-            return None
-        
-        # フレーム番号を付与
-        frame_num = self.frame_num
-        self.frame_num += 1
-        return (frame_num, raw_frame)
-    
     # スレッドを終了するメソッド
     def terminate(self):
         self.active = False
@@ -57,7 +45,12 @@ class FrameCapturer(Thread):
     # フレームキャプチャを繰り返すメソッド
     def run(self):
         while self.active:
-            frame_num, raw_frame = self.get_split_frame()
-            if raw_frame != None:
+            # フレームを取得
+            raw_frame = self.pipe.stdout.read(self.frame_size)
+            # 前のフレームと変化が無ければやり直し
+            if raw_frame != self.prev_frame:
+                frame_num = self.frame_num
+                self.frame_num += 1
+                self.prev_frame = raw_frame
                 self.raw_frame_queue.put((frame_num, raw_frame))
 
