@@ -1,23 +1,23 @@
 # *-* coding: utf-8 *-*
-## websocket_io.py (WebSocket通信部)
+## websocket_io.py (WebSocket通信モジュール)
 
 from tornado import websocket, ioloop
 import json
 from threading import Timer
 import numpy as np
-from .utils import normal_output, ok_output, error_output, warning_output
+from .output import normal_output, ok_output, error_output, warning_output
 
 # WebSocketの読み書きを行うクラス
 class WebSocketIO():
     # コンストラクタ
     def __init__(self, ip, port, ws_tag, ws_id, interval):
         # パラメータを設定
-        self.socket = None         # 通信用のソケット
-        self.open_callback = None  # ソケットを開いた時のコールバック
-        self.msgs = {}             # コールバックリスト
-        self.alias_count = 1       # エイリアスカウント
-        self.ws_tag = ws_tag       # ソケットタグ
-        self.interval = interval   # 送信失敗時の待ち時間
+        self.socket = None                       # 通信用のソケット
+        self.open_callback = None                # ソケットを開いた時のコールバック
+        self.msgs = {}                           # コールバックリスト
+        self.alias_count = 1                     # エイリアスカウント
+        self.ws_tag = ws_tag                     # ソケットタグ
+        self.interval = interval                 # 送信失敗時の待ち時間
         self.addr = 'ws://%s:%d' % (ip, port)    # SAGE2サーバのアドレス
         self.remote_listeners = {ws_tag: ws_id}  # サーバのAPIリスト
         self.local_listeners = {ws_id: ws_tag}   # ローカルのAPIリスト
@@ -26,8 +26,8 @@ class WebSocketIO():
     def open(self, callback):
         # WebSocket通信用のソケットを開く
         websocket.websocket_connect(self.addr,
-                                    callback=self.on_open,
-                                    on_message_callback=self.on_message)
+                                    callback=self.on_open_callback,
+                                    on_message_callback=self.on_message_callback)
         
         # ソケットの準備が終わった時のコールバックを設定
         self.open_callback = callback
@@ -37,6 +37,7 @@ class WebSocketIO():
             self.ioloop = ioloop.IOLoop.instance()
             self.ioloop.start()
         except KeyboardInterrupt:
+            print('')
             normal_output('exit')
     
     # ソケットを閉じるメソッド
@@ -46,7 +47,7 @@ class WebSocketIO():
         self.ioloop.stop()
     
     # ソケットを開いた時のコールバック
-    def on_open(self, socket):
+    def on_open_callback(self, socket):
         # 開いたソケットを取得
         ok_output('Connected to %s' % self.addr)
         self.socket = socket.result()
@@ -55,16 +56,16 @@ class WebSocketIO():
         self.open_callback()
     
     # ソケットを閉じた時のコールバック
-    def on_close(self):
+    def on_close_callback(self):
         # ソケットを閉じてI/Oループを停止
         normal_output('Connection closed')
         self.ioloop.stop()
     
     # 受信時のコールバック
-    def on_message(self, msg):
+    def on_message_callback(self, msg):
         # 受信メッセージをパース
         if msg == None:
-            self.on_close()
+            self.on_close_callback()
         else:
             if msg.startswith('{') and msg.endswith('}'):
                 json_msg = json.loads(msg)

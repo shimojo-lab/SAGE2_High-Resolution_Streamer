@@ -2,13 +2,14 @@
 ## frame_streamer.py (フレーム送信モジュール)
 
 from time import time
+import sys
 from base64 import b64decode
-from .utils import normal_output
+from .output import normal_output
 
 ## フレームをストリーミング配信するクラス
 class FrameStreamer():
     # コンストラクタ
-    def __init__(self, ws_io, thread_mgr, width, height, comp, show_fps):
+    def __init__(self, ws_io, thread_mgr, width, height, comp):
         # パラメータを設定
         self.ws_io = ws_io                       # WebSocket入出力モジュール
         self.thread_mgr = thread_mgr             # スレッド管理モジュール
@@ -18,8 +19,7 @@ class FrameStreamer():
         self.width, self.height = width, height  # フレームのサイズ
         self.comp = comp                         # フレームの圧縮形式
         self.encoding = 'base64'                 # フレームのエンコード形式
-        self.show_fps = show_fps                 # フレームレート計測用のフラグ
-        self.fps = None                          # フレームレート
+        self.fps_interval = 1                    # フレームレートの表示間隔
         self.pre_update_time = time()            # 前回のフレーム送信時刻
     
     # 送信側での瞬間のフレームレートを計測するメソッド
@@ -64,10 +64,13 @@ class FrameStreamer():
             }
         })
         
-        # フレームレートを計測 (デバッグ用)
-        if self.show_fps == "True":
-            self.fps = self.measure_fps()
-            print('frame%d: %s[fps]' % (frame_num, self.fps))
+        # 一定間隔でフレームレートを表示
+        fps = self.measure_fps()
+        self.fps_interval -= 1
+        if self.fps_interval <= 0:
+            sys.stdout.write('\r[SAGE2_Streamer]> Frame Rate: %sfps ' % fps)
+            sys.stdout.flush()
+            self.fps_interval = fps / 6.0
         
     # ストリーミングを停止するメソッド
     def stop_streaming(self, data):
@@ -75,7 +78,7 @@ class FrameStreamer():
         self.thread_mgr.terminate_all()
         
         # ソケットを閉じる
-        self.ws_io.on_close()
+        self.ws_io.on_close_callback()
     
     # ソケットの準備が完了した時のコールバック
     def on_open(self):

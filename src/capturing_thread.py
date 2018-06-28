@@ -4,7 +4,7 @@
 from threading import Thread
 from subprocess import Popen, PIPE
 import numpy as np
-from .utils import error_output
+from .output import error_output
 
 # 別スレッドでフレームキャプチャを行うクラス
 class FrameCapturer(Thread):
@@ -14,21 +14,23 @@ class FrameCapturer(Thread):
         super(FrameCapturer, self).__init__()
         self.width, self.height = width, height  # フレームの縦横の長さ
         self.frame_size = width * height * 3     # フレームのデータサイズ
+        self.rec_fps = framerate                 # 録画のフレームレート
+        self.stream_fps = framerate              # ストリーミングのフレームレート
         self.raw_frame_queue = raw_frame_queue   # 生フレームキュー
         self.frame_num = 0                       # 付与するフレーム番号
         self.active = True                       # スレッドの終了フラグ
-        self.prev_frame = None                   # 前回取得したフレーム
+        self.prev_frame = ''.encode()            # 前回取得したフレーム
         
         # フレーム録画を開始
-        self.pipe = self.init_recording(loglevel, display, depth, framerate)
+        self.pipe = self.init_recording(loglevel, display, depth)
     
     # 録画を開始するメソッド
-    def init_recording(self, loglevel, display, depth, framerate):
+    def init_recording(self, loglevel, display, depth):
         # 録画用のコマンドを作成
         record_cmd = [
             'ffmpeg', '-loglevel', loglevel, '-f', 'x11grab',
             '-vcodec', 'rawvideo', '-an', '-s', '%dx%d' % (self.width, self.height),
-            '-i', ':%d+0,0' % display, '-r', str(framerate),
+            '-i', ':%d+0,0' % display, '-r', str(self.rec_fps),
             '-f', 'image2pipe', '-vcodec', 'rawvideo', '-pix_fmt', 'bgr%d' % depth, '-'
         ]
         

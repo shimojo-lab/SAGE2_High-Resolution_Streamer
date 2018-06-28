@@ -3,7 +3,7 @@
 
 import json
 from os import path
-from src.utils import normal_output
+from src.output import normal_output
 from src.frame_streamer import FrameStreamer
 from src.thread_manager import ThreadManager
 from src.websocket_io import WebSocketIO
@@ -18,6 +18,7 @@ def main():
     normal_output('Preparing for screen capture...')
     thread_mgr = ThreadManager(comp_thread_num=conf['compression_thread'],
                                raw_queue_size=conf['raw_frame_queue'],
+                               comp_queue_size=conf['comp_frame_queue'],
                                loglevel=conf['ffmpeg_loglevel'],
                                display=conf['display'],
                                width=conf['width'],
@@ -41,8 +42,7 @@ def main():
                              thread_mgr=thread_mgr,
                              width=conf['width'],
                              height=conf['height'],
-                             comp=conf['compression'],
-                             show_fps=conf['show_fps'])
+                             comp=conf['compression'])
     
     # ストリーミングを開始
     ws_io.open(streamer.on_open)

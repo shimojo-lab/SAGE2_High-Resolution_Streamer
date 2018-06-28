@@ -4,7 +4,7 @@
 from threading import Thread
 import cv2
 from base64 import b64encode
-from .utils import error_output
+from .output import error_output
 
 # 別スレッドでフレーム圧縮を行うクラス
 class FrameCompressor(Thread):

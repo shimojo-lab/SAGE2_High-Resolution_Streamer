@@ -1,5 +1,5 @@
 # -*- coding: utf-8 *-*
-# utils.py (その他の機能)
+# output.py (コンソール出力用関数)
 
 PROMPT = '[SAGE2_Streamer]>'
 

@@ -4,14 +4,14 @@
 from queue import Queue, PriorityQueue
 from time import sleep
 from threading import active_count
-from .utils import normal_output, ok_output, error_output
+from .output import normal_output, ok_output, error_output
 from .capturing_thread import FrameCapturer
 from .compression_thread import FrameCompressor
 
 ## スレッドを管理するクラス
 class ThreadManager:
     # コンストラクタ
-    def __init__(self, comp_thread_num, raw_queue_size, loglevel, display, width, height, depth, framerate, comp, quality):
+    def __init__(self, comp_thread_num, raw_queue_size, comp_queue_size, loglevel, display, width, height, depth, framerate, comp, quality):
         # パラメータを設定
         self.comp = comp            # フレームの圧縮形式
         self.quality = quality      # フレームの圧縮品質
@@ -21,7 +21,7 @@ class ThreadManager:
         
         # フレームキューを用意
         self.raw_frame_queue = PriorityQueue(raw_queue_size)
-        self.comp_frame_queue = PriorityQueue()
+        self.comp_frame_queue = PriorityQueue(comp_queue_size)
         
         # フレームキャプチャ用スレッドを初期化
         self.capturer = FrameCapturer(raw_frame_queue=self.raw_frame_queue,
@@ -59,10 +59,14 @@ class ThreadManager:
         self.raw_frame_queue.get()
         self.capturer.join()
         
-        for compresser in self.compressers:
-            compresser.terminate()
+        for compressor in self.compressors:
+            compressor.terminate()
+        
+        for i in range(self.comp_queue.qsize()):
             self.comp_frame_queue.get()
-            compresser.join()
+        
+        for compressor in self.compressors:
+            compressor.join()
     
     # 次番のフレームを取り出すメソッド
     def get_next_frame(self):
