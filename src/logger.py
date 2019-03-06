@@ -22,4 +22,5 @@ class Logger:
     @staticmethod
     def print_err(msg):
         print('%s \033[31m[Error]\033[0m %s' % (PROMPT, msg))
+    
 
