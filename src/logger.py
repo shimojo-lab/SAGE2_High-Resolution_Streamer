@@ -6,7 +6,7 @@ class Logger:
     # print a normal message on the console
     @staticmethod
     def print_info(msg):
-        print('%s %s' % (PROMPT, sentence))
+        print('%s %s' % (PROMPT, msg))
     
     # print an OK message on the console
     @staticmethod

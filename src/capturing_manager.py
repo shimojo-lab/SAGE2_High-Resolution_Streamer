@@ -11,14 +11,14 @@ WAIT_TIME = 1
 ## a class for managing frame capturing
 class CapturingManager:
     def __init__(self, display_num, width, height, depth, loglevel, fps, comp_thre_num, raw_queue_size, comp_queue_size, quality):
-        self.display = display   # the display number used by the vnc server
-        self.next_frame_num = 0  # the number for the next compressed frame
+        self.display_num = display_num  # the display number used by the vnc server
+        self.next_frame_num = 0         # the number for the next compressed frame
         self.raw_frame_queue = PriorityQueue(raw_queue_size)    # the queue for raw frames
         self.comp_frame_queue = PriorityQueue(comp_queue_size)  # the queue for compressed frames
         
         self.capturer = FrameCapturer(raw_frame_queue=self.raw_frame_queue,
                                       loglevel=loglevel,
-                                      display=self.display,
+                                      display_num=display_num,
                                       width=width,
                                       height=height,
                                       depth=depth,
@@ -38,7 +38,7 @@ class CapturingManager:
         self.capturer.start()
         for compressor in self.compressors:
             compressor.start()
-        Logger.print_ok('Captured from Display :%d' % self.display)
+        Logger.print_ok('Captured from Display :%d' % self.display_num)
     
     # terminate all the threads
     def terminate_all(self):

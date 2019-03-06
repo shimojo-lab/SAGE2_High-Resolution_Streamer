@@ -29,7 +29,7 @@ class FrameStreamer():
         self.app_id = data['UID'] + '|0' 
         self.ws_io.emit('requestToStartMediaStream', {})
         
-        frame = self.thread_mgr.get_next_frame()[1]
+        frame = self.capturing_mgr.get_next_frame()[1]
         self.ws_io.emit('startNewMediaStream', {
             'id': self.app_id,
             'title': self.title,
@@ -46,7 +46,7 @@ class FrameStreamer():
     
     # send a next compressed frame
     def send_next_frame(self, data):
-        frame_num, frame = self.thread_mgr.get_next_frame()
+        frame_num, frame = self.capturing_mgr.get_next_frame()
         self.ws_io.emit('updateMediaStreamFrame', {
             'id': self.app_id,
             'state': {
@@ -70,9 +70,9 @@ class FrameStreamer():
     
     # the callback function when opening a new socket
     def on_open(self):
-        self.ws_io.set_recv_callback('initialize', self.init_streaming)
+        self.ws_io.set_recv_callback('initialize', self.notify_start)
         self.ws_io.set_recv_callback('requestNextFrame', self.send_next_frame)
-        self.ws_io.set_recv_callback('stopMediaCapture', self.stop_streaming)
+        self.ws_io.set_recv_callback('stopMediaCapture', self.terminate_streaming)
         
         self.ws_io.emit('addClient', {
             'clientType': self.title,

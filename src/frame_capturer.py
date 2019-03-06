@@ -7,7 +7,7 @@ from .logger import Logger
 
 ## a thread for capturing raw frames from the virtual framebuffer
 class FrameCapturer(Thread):
-    def __init__(self, raw_frame_queue, loglevel, display, width, height, depth, fps):
+    def __init__(self, raw_frame_queue, loglevel, display_num, width, height, depth, fps):
         super(FrameCapturer, self).__init__()
         
         self.raw_frame_queue = raw_frame_queue   # the queue for raw frames
@@ -18,14 +18,14 @@ class FrameCapturer(Thread):
         self.active = True                       # the flag for running this thread
         self.prev_frame = ''.encode()            # the raw frame captured in the previous time
         
-        self.pipe = self.init_recording(loglevel, display, depth)
+        self.pipe = self.init_recording(loglevel, display_num, depth)
     
     # start recording with ffmpeg
-    def init_recording(self, loglevel, display, depth):
+    def init_recording(self, loglevel, display_num, depth):
         record_cmd = [
             'ffmpeg', '-loglevel', loglevel, '-f', 'x11grab',
             '-vcodec', 'rawvideo', '-an', '-s', '%dx%d' % (self.width, self.height),
-            '-i', ':%d+0,0' % display, '-r', str(self.rec_fps),
+            '-i', ':%d+0,0' % display_num, '-r', str(self.rec_fps),
             '-f', 'image2pipe', '-vcodec', 'rawvideo', '-pix_fmt', 'bgr%d' % depth, '-'
         ]
         
