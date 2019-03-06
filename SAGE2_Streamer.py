@@ -1,53 +1,50 @@
 # -*- coding: utf-8 -*-
-## SAGE2_Streamer.py (SAGE2_Streamerの実行スクリプト)
 
 import json
 from os import path
-from src.output import normal_output
+from src.logger import Logger
 from src.frame_streamer import FrameStreamer
-from src.thread_manager import ThreadManager
+from src.capturing_manager import CapturingManager
 from src.websocket_io import WebSocketIO
 
-## Main関数
+WS_TAG = '#WSIO#addListener'
+WS_ID = '0000'
+WS_TIMEOUT = 0.001
+
+## the main function
 def main():
-    # 設定ファイルをパース
     conf_path = path.dirname(path.abspath(__file__)) + '/config.json'
     conf = json.load(open(conf_path, 'r'))
     
-    # スレッド管理モジュールを初期化
-    normal_output('Preparing for screen capture...')
-    thread_mgr = ThreadManager(comp_thread_num=conf['compression_thread'],
-                               raw_queue_size=conf['raw_frame_queue'],
-                               comp_queue_size=conf['comp_frame_queue'],
-                               loglevel=conf['ffmpeg_loglevel'],
-                               display=conf['display'],
-                               width=conf['width'],
-                               height=conf['height'],
-                               depth=conf['depth'],
-                               framerate=conf['record_framerate'],
-                               comp=conf['compression'],
-                               quality=conf['quality'])
-    thread_mgr.init()
+    Logger.print_info('Preparing for screen capture...')
+    capturing_mgr = CapturingManager(display_num=conf['vnc']['number'],
+                                     width=conf['vnc']['width'],
+                                     height=conf['vnc']['height'],
+                                     depth=conf['vnc']['depth'],
+                                     loglevel=conf['ffmpeg']['loglevel'],
+                                     fps=conf['ffmpeg']['record_fps'],
+                                     comp_thre_num=conf['compression']['thread_num'],
+                                     raw_queue_size=conf['compression']['raw_frame_queue'],
+                                     comp_queue_size=conf['compression']['comp_frame_queue'],
+                                     quality=conf['compression']['quality']
+                    )
+    capturing_mgr.init()
     
-    # WebSocket入出力モジュールを初期化
-    normal_output('Preparing for server connection...')
-    ws_io = WebSocketIO(ip=conf['server_ip'],
-                        port=conf['server_port'],
-                        ws_tag='#WSIO#addListener',
-                        ws_id='0000',
-                        interval=0.001)
+    Logger.print_info('Preparing for server connection...')
+    ws_io = WebSocketIO(ip=conf['server']['ip'],
+                        port=conf['server']['port'],
+                        ws_tag=WS_TAG,
+                        ws_id=WS_ID,
+                        ws_timeout=WS_TIMEOUT
+                       )
     
-    # ストリーミングモジュールを初期化
     streamer = FrameStreamer(ws_io=ws_io,
-                             thread_mgr=thread_mgr,
-                             width=conf['width'],
-                             height=conf['height'],
-                             comp=conf['compression'])
-    
-    # ストリーミングを開始
+                             capturing_mgr=capturing_mgr,
+                             width=conf['vnc']['width'],
+                             height=conf['vnc']['height']
+                            )
     ws_io.open(streamer.on_open)
 
-## Main
 if __name__ == '__main__':
     main()
 

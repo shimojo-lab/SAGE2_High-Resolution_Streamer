@@ -1,17 +1,23 @@
 {
-  "server_ip": "tiled1",
-  "server_port": 9292,
-  "ffmpeg_loglevel": "quiet",
-  "display": 1,
-  "width": 5000,
-  "height": 5000,
-  "depth": 24,
-  "record_framerate": 10,
-  "compression": "jpg",
-  "quality": 90,
-  "raw_frame_queue": 64,
-  "comp_frame_queue": 64,
-  "compression_thread": 16,
-  "vnc_path": "/opt/TurboVNC/bin/vncserver"
+  "server": {
+    "ip": "127.0.0.1",
+    "port": 9292
+  },
+  "vnc": {
+    "path": "/opt/TurboVNC/bin/vncserver",
+    "number": 1,
+    "width": 1920,
+    "height": 1080,
+    "depth": 24
+  },
+  "ffmpeg": {
+    "loglevel": "quiet",
+    "record_fps": 10
+  },
+  "compression": {
+    "thread_num": 4,
+    "raw_frame_queue": 8,
+    "comp_frame_queue": 8,
+    "quality": 90
+  }
 }
-

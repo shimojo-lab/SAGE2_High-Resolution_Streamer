@@ -1,71 +1,59 @@
 # *-* coding: utf-8 *-*
-## websocket_io.py (WebSocket通信モジュール)
 
 from tornado import websocket, ioloop
 import json
 from threading import Timer
-import numpy as np
-from .output import normal_output, ok_output, error_output, warning_output
+from .logger import Logger
 
-# WebSocketの読み書きを行うクラス
+RESEND_NUM = 10
+
+# a class for handling websocket i/o
 class WebSocketIO():
-    # コンストラクタ
-    def __init__(self, ip, port, ws_tag, ws_id, interval):
-        # パラメータを設定
-        self.socket = None                       # 通信用のソケット
-        self.open_callback = None                # ソケットを開いた時のコールバック
-        self.msgs = {}                           # コールバックリスト
-        self.alias_count = 1                     # エイリアスカウント
-        self.ws_tag = ws_tag                     # ソケットタグ
-        self.interval = interval                 # 送信失敗時の待ち時間
-        self.addr = 'ws://%s:%d' % (ip, port)    # SAGE2サーバのアドレス
-        self.remote_listeners = {ws_tag: ws_id}  # サーバのAPIリスト
-        self.local_listeners = {ws_id: ws_tag}   # ローカルのAPIリスト
+    def __init__(self, ip, port, ws_tag, ws_id, ws_timeout):
+        self.socket = None                       # the socket
+        self.open_callback = None                # the callback when opening a socket
+        self.callbacks = {}                      # the list for callback functions
+        self.alias_count = 1                     # the alias count
+        self.addr = 'ws://%s:%d' % (ip, port)    # the address of sage2 server
+        self.ws_tag = ws_tag                     # the tag for adding a new listener
+        self.remote_listeners = {ws_tag: ws_id}  # the list of listeners on the sage2 server
+        self.local_listeners = {ws_id: ws_tag}   # the list of listeners on the sage2 client
+        self.ws_timeout = ws_timeout             # timeout time
     
-    # ソケットを開くメソッド
+    # open a new socket and start i/o loop
     def open(self, callback):
-        # WebSocket通信用のソケットを開く
         websocket.websocket_connect(self.addr,
-                                    callback=self.on_open_callback,
-                                    on_message_callback=self.on_message_callback)
-        
-        # ソケットの準備が終わった時のコールバックを設定
+                                    callback=self.on_open,
+                                    on_message_callback=self.on_message)
         self.open_callback = callback
         
-        # I/Oループを開始
         try:
             self.ioloop = ioloop.IOLoop.instance()
             self.ioloop.start()
         except KeyboardInterrupt:
             print('')
-            normal_output('exit')
+            Logger.print_info('Stopped streaming frames')
     
-    # ソケットを閉じるメソッド
+    # close a socket for websocket
     def close(self):
-        # ソケットを閉じてI/Oループを停止
         self.socket.close()
         self.ioloop.stop()
     
-    # ソケットを開いた時のコールバック
-    def on_open_callback(self, socket):
-        # 開いたソケットを取得
-        ok_output('Connected to %s' % self.addr)
+    # the callback fucntion when opening a socket
+    def on_open(self, socket):
+        Logger.print_ok('Connected to %s' % self.addr)
         self.socket = socket.result()
-        
-        # コールバックを実行
         self.open_callback()
     
-    # ソケットを閉じた時のコールバック
-    def on_close_callback(self):
-        # ソケットを閉じてI/Oループを停止
-        normal_output('Connection closed')
+    # the callback function when closing a socket
+    def on_close(self):
+        Logger.print_info('Closed websocket connection')
         self.ioloop.stop()
     
-    # 受信時のコールバック
-    def on_message_callback(self, msg):
-        # 受信メッセージをパース
+    # the callback function when receiving a message
+    def on_message(self, msg):
         if msg == None:
-            self.on_close_callback()
+            self.on_close()
         else:
             if msg.startswith('{') and msg.endswith('}'):
                 json_msg = json.loads(msg)
@@ -74,35 +62,33 @@ class WebSocketIO():
                     if f_name == self.ws_tag:
                         self.remote_listeners[json_msg['d']['listener']] = json_msg['d']['alias']
                     else:
-                        self.msgs[f_name](json_msg['d'])
+                        self.callbacks[f_name](json_msg['d'])
                 else:
-                    warning_output('No handler for massage')
+                    Logger.print_warn('No handler for massage')
             else:
-                warning_output('Message format is invalid (not JSON)')
+                Logger.print_warn('Message format is invalid (not JSON)')
     
-    # 受信時のコールバックを設定するメソッド
+    # set the callback function when receiving a message
     def set_recv_callback(self, name, callback):
         alias = '%04x' % self.alias_count
         self.local_listeners[alias] = name
-        self.msgs[name] = callback
+        self.callbacks[name] = callback
         self.alias_count += 1
         self.emit(self.ws_tag, {'listener': name, 'alias': alias})
     
-    # メッセージを送信するメソッド
-    def emit(self, name, data, attempts=10):
-        # メッセージ名の有無を確認
+    # send a message
+    def emit(self, name, data, attempts=RESEND_NUM):
         if name==None or name=='':
-            warning_output('No message name specified')
+            Logger.print_warn('No message name is specified')
         
-        # メッセージをソケットに書き込み (失敗したらやり直し)
         if name in self.remote_listeners:
             alias = self.remote_listeners[name]
             msg = json.dumps({'f': alias, 'd': data})
             self.socket.write_message(msg)
         else:
             if attempts >= 0:
-                timer = Timer(self.interval, self.emit, [name, data, attempts-1])
+                timer = Timer(self.ws_timeout, self.emit, [name, data, attempts-1])
                 timer.start()
             else:
-                warning_output('Not sending message, recipient has no listener (%s)' % name)
+                Logger.print_warn('Not sending message, recipient has no listener (%s)' % name)
 
