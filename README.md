@@ -21,4 +21,3 @@ Python scripts for streaming a high-resolution application window to a SAGE2 Til
 2. Edit the configuration file (config.json).
 3. Run `bash launch_vnc_server.sh`.
 4. Run `python SAGE2_Streamer.py`.
-
