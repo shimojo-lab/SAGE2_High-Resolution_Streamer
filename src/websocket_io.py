@@ -7,20 +7,20 @@ from .logger import Logger
 
 RESEND_NUM = 10
 
-# a class for handling websocket i/o
+# A class for Websocket I/O
 class WebSocketIO():
     def __init__(self, ip, port, ws_tag, ws_id, ws_timeout):
         self.socket = None                       # the socket
         self.open_callback = None                # the callback when opening a socket
-        self.callbacks = {}                      # the list for callback functions
+        self.callbacks = {}                      # the list for the callback functions
         self.alias_count = 1                     # the alias count
         self.addr = 'ws://%s:%d' % (ip, port)    # the address of sage2 server
         self.ws_tag = ws_tag                     # the tag for adding a new listener
         self.remote_listeners = {ws_tag: ws_id}  # the list of listeners on the sage2 server
         self.local_listeners = {ws_id: ws_tag}   # the list of listeners on the sage2 client
-        self.ws_timeout = ws_timeout             # timeout time
+        self.ws_timeout = ws_timeout             # the timeout time
     
-    # open a new socket and start i/o loop
+    # open a new socket and start I/O loop
     def open(self, callback):
         websocket.websocket_connect(self.addr,
                                     callback=self.on_open,
@@ -34,23 +34,23 @@ class WebSocketIO():
             print('')
             Logger.print_info('Stopped streaming frames')
     
-    # close a socket for websocket
+    # close a socket
     def close(self):
         self.socket.close()
         self.ioloop.stop()
     
-    # the callback fucntion when opening a socket
+    # the callback when opening a socket
     def on_open(self, socket):
         Logger.print_ok('Connected to %s' % self.addr)
         self.socket = socket.result()
         self.open_callback()
     
-    # the callback function when closing a socket
+    # the callback when closing a socket
     def on_close(self):
         Logger.print_info('Closed websocket connection')
         self.ioloop.stop()
     
-    # the callback function when receiving a message
+    # the callback when receiving a message
     def on_message(self, msg):
         if msg == None:
             self.on_close()
@@ -68,7 +68,7 @@ class WebSocketIO():
             else:
                 Logger.print_warn('Message format is invalid (not JSON)')
     
-    # set the callback function when receiving a message
+    # set a callback when receiving a message
     def set_recv_callback(self, name, callback):
         alias = '%04x' % self.alias_count
         self.local_listeners[alias] = name

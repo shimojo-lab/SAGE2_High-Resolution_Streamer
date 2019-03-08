@@ -1,20 +1,20 @@
-# *-* encoding: utf-8 *-*
+# *-* coding: utf-8 *-*
 
 from time import time
 import sys
 from base64 import b64decode
 from .logger import Logger
 
-## a class for streaming compressed frames
+## A class for frame streaming
 class FrameStreamer():
     def __init__(self, ws_io, capturing_mgr, width, height):
-        self.ws_io = ws_io                       # the websocket i/o handler
+        self.ws_io = ws_io                       # the Websocket I/O handler
         self.capturing_mgr = capturing_mgr       # the frame capturing manager
-        self.app_id = None                       # the application id
+        self.app_id = None                       # the application ID
         self.title = 'SAGE2_Streamer'            # the application name
-        self.color = '#cccc00'                   # the window color on the sage ui
+        self.color = '#cccc00'                   # the window color on the sage UI
         self.width, self.height = width, height  # the width and height of frames
-        self.fps_interval = 1                    # the interval of displaying the frame rate
+        self.fps_interval = 1                    # the interval of printing the frame rate
         self.pre_send_time = time()              # the time in which the previous frame was sended
     
     # measure the frame rate
@@ -63,12 +63,12 @@ class FrameStreamer():
             sys.stdout.flush()
             self.fps_interval = fps / 6.0
     
-    # terminate streaming frames
+    # terminate streaming
     def terminate_streaming(self, data):
         self.capturing_mgr.terminate_all()
         self.ws_io.on_close()
     
-    # the callback function when opening a new socket
+    # the callback when opening a new socket
     def on_open(self):
         self.ws_io.set_recv_callback('initialize', self.notify_start)
         self.ws_io.set_recv_callback('requestNextFrame', self.send_next_frame)

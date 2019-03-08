@@ -5,7 +5,7 @@ from subprocess import Popen, PIPE
 import numpy as np
 from .logger import Logger
 
-## a thread for capturing raw frames from the virtual framebuffer
+## A class for capturing raw frames from the virtual framebuffer
 class FrameCapturer(Thread):
     def __init__(self, raw_frame_queue, loglevel, display_num, width, height, depth, fps):
         super(FrameCapturer, self).__init__()
@@ -15,7 +15,7 @@ class FrameCapturer(Thread):
         self.frame_size = width * height * 3     # the data size of a raw frame
         self.rec_fps = fps                       # the frame rate applied for ffmpeg
         self.frame_num = 0                       # the frame number
-        self.active = True                       # the flag for running this thread
+        self.active = True                       # the flag for running this class
         self.prev_frame = ''.encode()            # the raw frame captured in the previous time
         
         self.pipe = self.init_recording(loglevel, display_num, depth)
@@ -36,7 +36,7 @@ class FrameCapturer(Thread):
             exit(1)
         return pipe
     
-    # capture a raw frame from virtual framebuffer
+    # capture a raw frame from the virtual framebuffer
     def get_frame(self):
         while True:
             frame = self.pipe.stdout.read(self.frame_size)
@@ -49,7 +49,7 @@ class FrameCapturer(Thread):
                     exit(1)
                 return raw_frame
     
-    # terminate this thread
+    # terminate capturing
     def terminate(self):
         self.active = False
     

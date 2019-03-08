@@ -2,6 +2,7 @@
 
 PROMPT = '[SAGE2_Streamer]>' 
 
+# A class for printing messages
 class Logger:
     # print a normal message on the console
     @staticmethod

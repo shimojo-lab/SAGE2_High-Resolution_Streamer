@@ -1,4 +1,4 @@
-# *-* encoding: utf-8 *-*
+# *-* coding: utf-8 *-*
 
 from queue import PriorityQueue
 from time import sleep
@@ -8,7 +8,7 @@ from .frame_compressor import FrameCompressor
 
 WAIT_TIME = 1
 
-## a class for managing frame capturing
+## A class for management of the frame capturing modules
 class CapturingManager:
     def __init__(self, display_num, width, height, depth, loglevel, fps, comp_thre_num, raw_queue_size, comp_queue_size, quality):
         self.display_num = display_num  # the display number used by the vnc server

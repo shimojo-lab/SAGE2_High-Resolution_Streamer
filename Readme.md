@@ -1,11 +1,11 @@
 # High-Resolution SAGE2 Streamer
 Python scripts for streaming a high-resolution application window to a SAGE2 Tiled Display Wall
 
-(This scripts requires Linux as the operating system)
+(This scripts requires Linux as the operating system of the SAGE2 client)
 
 ## Installation
 ### Requirements
-- [SAGE2 (v3)](http://sage2.sagecommons.org)
+- [SAGE2](http://sage2.sagecommons.org) (ver.3 is needed)
 - [Python3](https://www.python.org)
 - [TurboVNC](https://github.com/TurboVNC/turbovnc)
 - [FFmpeg](https://github.com/FFmpeg/FFmpeg)
@@ -18,7 +18,7 @@ Python scripts for streaming a high-resolution application window to a SAGE2 Til
 
 ## How to use
 1. Launch the SAGE2 server.
-1. Edit the configuration file (config.json)
-2. Run `bash launch_vnc_server.sh`
-3. Run `python sage2_streamer.py`
+2. Edit the configuration file (config.json).
+3. Run `bash launch_vnc_server.sh`.
+4. Run `python SAGE2_Streamer.py`.
 
