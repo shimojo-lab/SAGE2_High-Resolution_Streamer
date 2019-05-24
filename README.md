@@ -1,6 +1,6 @@
 # High-Resolution SAGE2 Streamer
-Python scripts for streaming a high-resolution application window to a SAGE2 Tiled Display Wall
-
+SAGE2 has a screen sharing functionality from client application windown to SAGE2 Tiled display. However, the screen sharing functionality resolution depends on client resolution, because the functionality is just a window image copy to SAGE2 from client.
+So, we have been developed a new screen sharing functionality with free resolution mechanism on SAGE2. That is a Python scripts for streaming a high-resolution application window to a SAGE2 Tiled Display Wall.
 (This scripts requires Linux as the operating system of the SAGE2 client)
 
 ## Installation
